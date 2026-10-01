@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(pnpm test *)",
+      "Bash(pnpm lint *)",
+      "Bash(pnpm typecheck *)",
+      "Bash(pnpm build *)",
+      "Bash(pnpm format *)",
+      "Bash(pnpm format:check *)",
+      "Bash(pnpm db:up *)",
+      "Bash(pnpm --filter @shoppy/api test *)",
+      "Bash(pnpm --filter @shoppy/api typecheck *)",
+      "Bash(pnpm --filter @shoppy/api build *)",
+      "Bash(pnpm --filter @shoppy/api generate *)",
+      "Bash(pnpm --filter @shoppy/web test *)",
+      "Bash(pnpm --filter @shoppy/web typecheck *)",
+      "Bash(pnpm --filter @shoppy/web build *)",
+      "Bash(pnpm --filter @shoppy/shared test *)",
+      "Bash(pnpm --filter @shoppy/shared typecheck *)",
+      "Bash(pnpm --filter @shoppy/shared build *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(docker compose ps *)",
+      "Bash(docker compose logs *)",
+      "Bash(docker compose up -d db *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && jq -r '.tool_response.filePath // .tool_input.file_path' | { read -r f; case \"$f\" in \"$CLAUDE_PROJECT_DIR\"/*) node_modules/.bin/prettier --write --ignore-unknown --log-level warn \"$f\";; esac; } 2>/dev/null || true",
+            "timeout": 30,
+            "statusMessage": "Formatting with Prettier"
+          }
+        ]
+      }
+    ]
+  }
+}
