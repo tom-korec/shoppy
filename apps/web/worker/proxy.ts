@@ -24,6 +24,7 @@ export async function proxyToApi(
   headers.set('x-forwarded-proto', incoming.protocol.replace(':', ''));
   const clientIp = request.headers.get('cf-connecting-ip');
   if (clientIp) headers.set('x-forwarded-for', clientIp);
+  else headers.delete('x-forwarded-for');
   if (env.PROXY_SECRET) headers.set(PROXY_SECRET_HEADER, env.PROXY_SECRET);
   else headers.delete(PROXY_SECRET_HEADER);
 

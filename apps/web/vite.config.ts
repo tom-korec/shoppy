@@ -49,7 +49,10 @@ export default defineConfig({
     port: 5180,
     strictPort: true,
     proxy: {
-      '/api': { target: 'http://localhost:3000', changeOrigin: true },
+      '/api': {
+        target: process.env['API_PROXY_TARGET'] ?? 'http://localhost:3000',
+        changeOrigin: true,
+      },
     },
   },
   test: {

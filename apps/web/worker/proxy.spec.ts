@@ -43,6 +43,17 @@ describe('proxyToApi', () => {
     expect(new Headers(calls[0]!.init.headers).has(PROXY_SECRET_HEADER)).toBe(false);
   });
 
+  it('drops a client-supplied X-Forwarded-For when Cloudflare gives no client IP', async () => {
+    const { calls, fetchImpl } = capture();
+    const request = new Request('https://shoppy.korec.dev/api/health', {
+      headers: { 'x-forwarded-for': '6.6.6.6' },
+    });
+
+    await proxyToApi(request, { API_ORIGIN }, fetchImpl);
+
+    expect(new Headers(calls[0]!.init.headers).has('x-forwarded-for')).toBe(false);
+  });
+
   it('forwards the body for POST requests', async () => {
     const { calls, fetchImpl } = capture();
     const request = new Request('https://shoppy.korec.dev/api/auth/login', {
