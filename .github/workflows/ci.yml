@@ -29,6 +29,8 @@ jobs:
           --health-interval 5s --health-timeout 3s --health-retries 10
     env:
       DATABASE_URL: postgresql://shoppy:shoppy@localhost:5432/shoppy
+      # API tests create and migrate this database themselves.
+      TEST_DATABASE_URL: postgresql://shoppy:shoppy@localhost:5432/shoppy_test
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -46,6 +48,40 @@ jobs:
       - run: pnpm build
         env:
           VITE_APP_VERSION: ${{ github.sha }}
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: shoppy
+          POSTGRES_PASSWORD: shoppy
+          POSTGRES_DB: shoppy
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U shoppy"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      E2E_DATABASE_URL: postgresql://shoppy:shoppy@localhost:5432/shoppy_e2e
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo run build --filter @shoppy/shared && pnpm --filter @shoppy/api generate
+      - run: pnpm --filter @shoppy/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @shoppy/web test:e2e
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/test-results
+          retention-days: 7
 
   docker:
     name: API image builds

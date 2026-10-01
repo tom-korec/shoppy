@@ -72,8 +72,8 @@ jobs:
             --min-instances 0 --max-instances 2 \
             --concurrency 80 \
             --cpu-boost \
-            --set-env-vars "NODE_ENV=production,LOG_LEVEL=info,APP_VERSION=${GITHUB_SHA::7},SENTRY_DSN=${{ vars.SENTRY_DSN_API }}" \
-            --set-secrets "DATABASE_URL=shoppy-database-url:latest,PROXY_SECRET=shoppy-proxy-secret:latest" \
+            --set-env-vars "NODE_ENV=production,LOG_LEVEL=info,APP_VERSION=${GITHUB_SHA::7},APP_URL=https://shoppy.korec.dev,SENTRY_DSN=${{ vars.SENTRY_DSN_API }},GOOGLE_CLIENT_ID=${{ vars.GOOGLE_CLIENT_ID }}" \
+            --set-secrets "DATABASE_URL=shoppy-database-url:latest,PROXY_SECRET=shoppy-proxy-secret:latest,JWT_SECRET=shoppy-jwt-secret:latest,RESEND_API_KEY=shoppy-resend-api-key:latest" \
             --quiet
 
   web:
@@ -93,6 +93,7 @@ jobs:
       - run: pnpm turbo run build --filter @shoppy/web
         env:
           VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN_WEB }}
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
       # Uploading secrets with the deployment also works for the very first deploy.
       - run: printf 'PROXY_SECRET=%s\n' "$PROXY_SECRET" > "$RUNNER_TEMP/worker-secrets.env"
         env:
