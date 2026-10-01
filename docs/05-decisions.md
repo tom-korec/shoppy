@@ -40,6 +40,7 @@
 | D-33 | Code conventions: one unit per file, **one endpoint per file** (`<verb>-<thing>.endpoint.ts`, single `handle`) delegating to an injected **feature service**, self-explanatory code with comments only for a non-obvious why. Codified in `.claude/rules/` | You chose it |
 | D-34 | Claude Code setup in `.claude/`: rules, skills (`new-endpoint`, `new-screen`, `db-migration`, `roadmap-task`, `commit-push-deploy`), agents (`code-reviewer`, `security-reviewer`, `test-writer`, `docs-keeper`), Prettier hook and command allowlist | You chose it |
 | D-35 | **PostgreSQL 18** (Neon, local docker, CI) instead of 17: longer support window, native `uuidv7()`, async I/O | You chose it |
+| D-36 | Artifact Registry keeps **only the newest image**; rollback = redeploy an older commit. Deploy runs migrations before pushing the image                                                                                                                                                                                                                                                                                                                                                         | You chose it                               |
 
 ## 5.2 Open questions
 

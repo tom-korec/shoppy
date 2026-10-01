@@ -76,14 +76,14 @@ If this command complains about a quota project, create the budget in the consol
 
 ## 3. Container registry
 
-The registry keeps only the 3 newest images, to stay inside the 0.5 GB free storage.
+The registry keeps only the newest image (~110 MB of the 0.5 GB free storage). Rolling back means redeploying an older commit. The Deploy workflow applies migrations before pushing, so a failed migration never evicts the image the live service runs on.
 
 ```bash
 gcloud artifacts repositories create shoppy --repository-format=docker --location="$REGION"
 
 cat > /tmp/shoppy-cleanup.json <<'JSON'
 [
-  { "name": "keep-recent", "action": { "type": "Keep" }, "mostRecentVersions": { "keepCount": 3 } },
+  { "name": "keep-recent", "action": { "type": "Keep" }, "mostRecentVersions": { "keepCount": 1 } },
   { "name": "delete-rest", "action": { "type": "Delete" }, "condition": { "tagState": "ANY" } }
 ]
 JSON
@@ -250,7 +250,7 @@ The Profile tab should show **API: Online**.
 | Service            | Limit to watch                        | Guardrail                                                       |
 | ------------------ | ------------------------------------- | --------------------------------------------------------------- |
 | Cloud Run          | 2M requests, 180k vCPU-s/month        | `max-instances=2`, scale to zero, $1 budget alert               |
-| Artifact Registry  | 0.5 GB storage                        | Cleanup policy keeps 3 images (~110 MB each, compressed)        |
+| Artifact Registry  | 0.5 GB storage                        | Cleanup policy keeps only the newest image (~110 MB compressed) |
 | Neon               | 0.5 GB storage, monthly compute hours | Scales to zero. Nothing pings the DB health check on a schedule |
 | Cloudflare Workers | 100k Worker requests/day              | Only `/api/*` invokes the Worker; static assets are free        |
 | Secret Manager     | 6 active secret versions              | Disable old versions after rotating                             |

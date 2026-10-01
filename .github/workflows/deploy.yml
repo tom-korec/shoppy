@@ -28,6 +28,20 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Migrations run before the image push: the registry keeps only the newest image, so a
+      # failed deploy must not push one that would evict the image the live revision runs on.
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter "@shoppy/api..."
+      - name: Apply database migrations
+        run: pnpm --filter @shoppy/api db:deploy
+        env:
+          # Neon *direct* (non-pooled) connection string; migrations need a session connection.
+          DATABASE_URL: ${{ secrets.DATABASE_URL_DIRECT }}
+
       - uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
@@ -45,18 +59,6 @@ jobs:
           tags: ${{ env.IMAGE }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --filter "@shoppy/api..."
-      - name: Apply database migrations
-        run: pnpm --filter @shoppy/api db:deploy
-        env:
-          # Neon *direct* (non-pooled) connection string; migrations need a session connection.
-          DATABASE_URL: ${{ secrets.DATABASE_URL_DIRECT }}
 
       - name: Deploy to Cloud Run
         run: |
