@@ -99,12 +99,15 @@ flowchart LR
 | Access token  | JWT (HS256 or EdDSA), claims: `sub`, `sid`           | 15 min                                                                           | Memory only (JS variable)                                  |
 | Refresh token | Opaque random 256-bit value, stored **hashed** in DB | 90 days **sliding**: every refresh issues a new token with a fresh 90-day expiry | `HttpOnly; Secure; SameSite=Strict; Path=/api/auth` cookie |
 
-- **Rotation + reuse detection:** every refresh rotates the token within a _token family_ (one family per device session). Presenting an already-used token revokes the whole family.
-- **App start:** the web app calls `POST /api/auth/refresh`. A valid cookie returns an access token and the user is signed in silently.
-- **Sessions screen:** lists token families (device, last used) and allows revoking them.
-- **Email/password:** Argon2id hashing; login rate limiting per IP and per account.
-- **Google:** Google Identity Services ("Sign in with Google" button / One Tap) in the web app returns an **ID token**. The web app sends it to `POST /api/auth/google`, and the backend verifies it with `google-auth-library`. This avoids full-page OAuth redirects, which are fragile in an installed iOS PWA. _(Spike task P0-07 validates this on iOS.)_
-- **Account linking:** if a Google email matches an existing verified account, the Google identity is linked. A user can have a password, Google, or both.
+- **Refresh token format:** `<sessionId>.<secret>.<signature>`. Only a SHA-256 hash of the secret is stored. The session id lets an old, already rotated token still point at its family; the HMAC signature means a forged token can't trigger a reuse revocation. `/auth/refresh` and `/auth/logout` also reject requests whose `Sec-Fetch-Site` isn't `same-origin` (SameSite doesn't separate sibling subdomains).
+- **Rotation + reuse detection:** every refresh rotates the token within a _token family_ (one family per device session). Presenting an already-used token revokes the whole family. A 30-second grace window accepts the previous token without rotating again, so two refreshes racing on app start don't look like theft. The web client also shares one in-flight refresh between callers.
+- **Every request checks the session:** the guard verifies the JWT and then loads its session row, so revoking a device (or a password reset) takes effect immediately, not after 15 minutes.
+- **App start:** the web app calls `POST /api/auth/refresh`. A valid cookie returns an access token and the user, and the user is signed in silently. A 401 on any other call triggers one refresh and a retry.
+- **Sessions screen:** lists token families (device, last used) and allows revoking one or all of them.
+- **Email/password:** Argon2id via `node:crypto` (19 MiB, 2 passes, OWASP minimum). Unknown emails are checked against a dummy hash, so timing doesn't reveal accounts. Rate limits per IP (IPv6 grouped by /64) and per account (in memory, D-37). Outgoing email is capped per day (D-46).
+- **Email verification is required** (D-39): every route needs a verified user unless marked `@Public()` or `@AllowUnverified()` (`GET /me`, resend, logout). Verification and reset links are single-use, hashed in `email_tokens`, valid 24 h and 1 h.
+- **Google:** Google Identity Services ("Sign in with Google" button) in the web app returns an **ID token**. The web app sends it to `POST /api/auth/google`, and the backend verifies it with `jose` against Google's JWKS (issuer, audience = our client ID, `email_verified`). This avoids full-page OAuth redirects, which are fragile in an installed iOS PWA. _(Spike task P0-07 validates this on iOS.)_
+- **Account linking:** a Google identity is linked to an existing account with the same email. If that account was never verified, its password and sessions are removed (D-38). A user can have a password, Google, or both. Google-only users add a password through the reset link.
 - **Installed PWA on iOS:** it has its own cookie storage, separate from Safari, so the user signs in once inside the installed app. Installed PWAs are exempt from Safari's 7-day storage eviction.
 
 ## 3.5 Authorization design
@@ -124,6 +127,7 @@ flowchart LR
 erDiagram
     USER ||--o{ AUTH_IDENTITY : has
     USER ||--o{ SESSION_FAMILY : has
+    USER ||--o{ EMAIL_TOKEN : has
     USER ||--o{ HOUSEHOLD_MEMBER : is
     HOUSEHOLD ||--o{ HOUSEHOLD_MEMBER : has
     HOUSEHOLD_MEMBER ||--o{ MEMBER_PERMISSION_OVERRIDE : has
@@ -159,10 +163,20 @@ erDiagram
         uuid id PK
         uuid user_id FK
         text current_token_hash
+        text previous_token_hash "grace window"
+        timestamptz rotated_at
         timestamptz expires_at
         timestamptz last_used_at
         text user_agent
         timestamptz revoked_at
+    }
+    EMAIL_TOKEN {
+        uuid id PK
+        uuid user_id FK
+        enum purpose "VERIFY_EMAIL|RESET_PASSWORD"
+        text token_hash UK
+        timestamptz expires_at
+        timestamptz used_at
     }
     HOUSEHOLD {
         uuid id PK
@@ -255,6 +269,8 @@ erDiagram
     }
 ```
 
+Tables use plural snake_case names (`users`, `session_families`, `categories` …).
+
 Key constraints:
 
 - `CHECK ((owner_user_id IS NULL) <> (household_id IS NULL))` on CATEGORY, ITEM, LIST.
@@ -266,12 +282,12 @@ Key constraints:
 - PURCHASE_RECORD keeps `name_snapshot` so history survives item deletion. Index `(list_id, bought_at DESC)` serves both the adaptive recent window and pagination.
 - **Check** = one transaction: insert PURCHASE_RECORD, delete LIST_ENTRY. **Restore** = the reverse. **Re-add** = insert LIST_ENTRY only.
 
-## 3.7 API outline (REST, `/api/v1`)
+## 3.7 API outline (REST, `/api`)
 
 | Area        | Endpoints                                                                                                                                                                                                                            |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Auth        | `POST /auth/register`, `/auth/login`, `/auth/google`, `/auth/refresh`, `/auth/logout`, `/auth/verify-email`, `/auth/forgot-password`, `/auth/reset-password`                                                                         |
-| Me          | `GET/PATCH /me`, `GET /me/sessions`, `DELETE /me/sessions/:id`, `DELETE /me`, `GET /me/export`, `GET /me/dashboard`, `GET/POST/PATCH/DELETE /me/favorites`                                                                           |
+| Auth        | `POST /auth/register`, `/auth/login`, `/auth/google`, `/auth/refresh`, `/auth/logout`, `/auth/verify-email`, `/auth/resend-verification`, `/auth/forgot-password`, `/auth/reset-password`                                            |
+| Me          | `GET/PATCH /me`, `POST /me/password`, `GET /me/sessions`, `DELETE /me/sessions/:id`, `DELETE /me/sessions` (all), `DELETE /me`, `GET /me/export`, `GET /me/dashboard`, `GET/POST/PATCH/DELETE /me/favorites`                         |
 | Scopes      | Resources are addressed by scope: `/scopes/personal/...` and `/scopes/households/:hid/...`                                                                                                                                           |
 | Categories  | `GET/POST {scope}/categories`, `PATCH/DELETE /categories/:id`, `POST {scope}/categories/reorder`                                                                                                                                     |
 | Items       | `GET/POST {scope}/items`, `PATCH/DELETE /items/:id`, `POST /items/copy` (target scope + item ids)                                                                                                                                    |

@@ -36,6 +36,7 @@ Mobile-first PWA for personal and household shopping lists. Personal project: **
 pnpm db:up                            # Postgres 18 on localhost:5442 (docker compose)
 pnpm dev                              # shared watch + API :3000 + web :5180
 pnpm test | pnpm typecheck | pnpm lint | pnpm format | pnpm build
+pnpm --filter @shoppy/web test:e2e   # Playwright (own ports 3100/5190 and shoppy_e2e DB)
 pnpm --filter @shoppy/api db:migrate  # create + apply a Prisma migration
 pnpm --filter @shoppy/web cf:dev      # built PWA behind the Worker (needs apps/web/.dev.vars)
 ```
@@ -47,4 +48,6 @@ pnpm --filter @shoppy/web cf:dev      # built PWA behind the Worker (needs apps/
 - Ports 5173, 5432 and 5433 are taken by other projects on this machine. Shoppy uses 5180 (web), 3000 (API) and 5442 (DB).
 - TypeScript stays on 6.0 (lint tooling doesn't support 7 yet). pnpm is pinned to 9.6.0.
 - `AGENTS.md` is managed by Turborepo; don't edit it by hand.
+- API tests hit a real Postgres (`shoppy_test`, created and migrated automatically), so `pnpm db:up` must be running.
+- Every route requires a signed-in, verified user unless marked `@Public()` or `@AllowUnverified()`.
 - Every API request in production must carry the proxy secret header. Use `createTestApp()` in e2e tests rather than bootstrapping Nest by hand.

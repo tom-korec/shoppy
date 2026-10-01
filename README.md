@@ -2,9 +2,7 @@
 
 A mobile-first PWA for creating and managing shopping lists, personal or shared across a household.
 
-> Status: **Phase 0 (foundations)**. The walking skeleton runs locally; production infrastructure is waiting for the one-time setup in [docs/06-infrastructure.md](docs/06-infrastructure.md).
->
-> Production URL (planned): https://shoppy.korec.dev
+> Status: **Phase 1 (authentication)**. Live at https://shoppy.korec.dev. Email and Google sign-in need the one-time setup in [docs/06-infrastructure.md §10](docs/06-infrastructure.md).
 
 ## Stack
 
@@ -26,7 +24,7 @@ pnpm db:up          # Postgres 18 on localhost:5442
 pnpm dev            # shared (watch) + API on :3000 + web on :5180
 ```
 
-Open http://localhost:5180. The Profile tab shows whether the web app can reach the API and the database.
+Open http://localhost:5180 and create an account. Without a Resend key, emails (with their confirmation link) are printed in the API log.
 
 ### Useful commands
 
@@ -34,7 +32,8 @@ Open http://localhost:5180. The Profile tab shows whether the web app can reach 
 | --------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `pnpm dev`                              | Run everything in watch mode (Turborepo)                                                                     |
 | `pnpm build`                            | Build all packages                                                                                           |
-| `pnpm test`                             | Run all tests (Vitest)                                                                                       |
+| `pnpm test`                             | Run all tests (Vitest). API tests need the local Postgres (`pnpm db:up`) and use their own `shoppy_test` DB  |
+| `pnpm --filter @shoppy/web test:e2e`    | Playwright E2E (starts its own API and web server on ports 3100/5190 with a `shoppy_e2e` DB)                 |
 | `pnpm typecheck`                        | Type-check all packages                                                                                      |
 | `pnpm lint` / `pnpm format`             | oxlint / Prettier                                                                                            |
 | `pnpm db:up` / `pnpm db:down`           | Start or stop local Postgres                                                                                 |

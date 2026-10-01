@@ -11,12 +11,13 @@ flowchart LR
     GH -->|wrangler deploy| W
 ```
 
-| Service                              | Account                                  |
-| ------------------------------------ | ---------------------------------------- |
-| Google Cloud (project `shoppy-list`) | the Google account logged in to `gcloud` |
-| Cloudflare (`korec.dev` zone)        | the account logged in to `wrangler`      |
-| GitHub (`tom-korec/shoppy`)          | `gh`                                     |
-| Neon                                 | any; sign in with GitHub or Google       |
+| Service                                | Account                                  |
+| -------------------------------------- | ---------------------------------------- |
+| Google Cloud (project `shoppy-to-buy`) | the Google account logged in to `gcloud` |
+| Cloudflare (`korec.dev` zone)          | the account logged in to `wrangler`      |
+| GitHub (`tom-korec/shoppy`)            | `gh`                                     |
+| Neon                                   | any; sign in with GitHub or Google       |
+| Resend (Phase 1)                       | any; sign in with GitHub or Google       |
 
 > **Secrets never appear on screen.** They are generated and piped (`openssl … | …`) or copied and piped from the clipboard (`pbpaste | …`). Don't paste them into chats or files.
 
@@ -31,7 +32,7 @@ gcloud auth list          # the account you want to own the project must be ACTI
 gh auth status            # logged in as tom-korec
 pnpm --filter @shoppy/web exec wrangler whoami   # Cloudflare account that owns korec.dev
 
-PROJECT_ID=shoppy-list
+PROJECT_ID=shoppy-to-buy
 REGION=europe-west3
 GITHUB_REPO=tom-korec/shoppy
 ```
@@ -51,7 +52,7 @@ Keep the tab open; step 5 copies them one at a time.
 gcloud projects create "$PROJECT_ID" --name="Shoppy"
 ```
 
-If the ID is taken, choose another (e.g. `shoppy-list-$RANDOM`), update `PROJECT_ID`, and use that value everywhere below.
+If the ID is taken, choose another (e.g. `shoppy-to-buy-$RANDOM`), update `PROJECT_ID`, and use that value everywhere below.
 
 ```bash
 gcloud config set project "$PROJECT_ID"
@@ -72,7 +73,7 @@ gcloud billing budgets create --billing-account="$BILLING_ACCOUNT" \
   --threshold-rule=percent=0.5 --threshold-rule=percent=1.0
 ```
 
-If this command complains about a quota project, create the budget in the console instead: _Billing → Budgets & alerts → Create budget_, $1, scoped to project `shoppy-list`.
+If this command complains about a quota project, create the budget in the console instead: _Billing → Budgets & alerts → Create budget_, $1, scoped to project `shoppy-to-buy`.
 
 ## 3. Container registry
 
@@ -235,15 +236,84 @@ The Profile tab should show **API: Online**.
 | `gcloud run deploy` fails with "Permission 'iam.serviceaccounts.actAs' denied"       | Missing `serviceAccountUser` binding on the runtime SA (step 4)                                                                                                                                  |
 | Migrations fail with a connection error                                              | `DATABASE_URL_DIRECT` is the pooled string or lacks `?sslmode=require`                                                                                                                           |
 | Wrangler fails with an authentication error or "not authorized for this zone"        | Token permissions or zone scope (step 6). Create a new token and `gh secret set` it again                                                                                                        |
+| Deploy fails on `--set-secrets` after Phase 1                                        | `shoppy-jwt-secret` or `shoppy-resend-api-key` missing, or not readable by the runtime SA → step 10                                                                                              |
 | `shoppy.korec.dev` shows a certificate error                                         | First-time certificate issuance; wait a few minutes                                                                                                                                              |
 | Health returns `503 API_ORIGIN is not configured`                                    | `API_ORIGIN` variable empty or wrong → fix and rerun the Deploy workflow                                                                                                                         |
 | Health returns `403` through the domain                                              | `PROXY_SECRET` differs between GitHub and GCP → regenerate it with the step 5 block (use `gcloud secrets versions add shoppy-proxy-secret --data-file=-` for the existing secret), then redeploy |
 | Health shows `"database":"down"`                                                     | `shoppy-database-url` is wrong (should be the pooled string)                                                                                                                                     |
 
-## Later: Sentry and Resend
+## 10. Authentication: JWT secret, Resend, Google (Phase 1)
 
-- **Sentry** (optional): create projects `shoppy-api` (NestJS) and `shoppy-web` (React), then `gh variable set SENTRY_DSN_API …` / `SENTRY_DSN_WEB …` and redeploy.
-- **Resend** (Phase 1, email): add the domain `shoppy.korec.dev` at <https://resend.com/domains>, add its DNS records in Cloudflare, and store the API key as GCP secret `shoppy-resend-api-key`.
+Do this **before** the Phase 1 code reaches `main`: the deploy fails if a secret below is missing, and the API refuses to start in production without a Resend key (nobody could confirm their email).
+
+This section usually runs in a new terminal, so set the variables it uses first:
+
+```bash
+PROJECT_ID=shoppy-to-buy
+GITHUB_REPO=tom-korec/shoppy
+RUNTIME_SA=shoppy-api-runtime@$PROJECT_ID.iam.gserviceaccount.com
+gcloud config set project "$PROJECT_ID"
+```
+
+### 10.1 Access-token signing key
+
+```bash
+openssl rand -hex 32 | tr -d '\n' | gcloud secrets create shoppy-jwt-secret --data-file=-
+```
+
+### 10.2 Resend (browser + Cloudflare DNS, ~10 min)
+
+1. Sign up at <https://resend.com> (free: 3,000 emails/month, 100/day, one domain).
+2. **Domains → Add domain** `shoppy.korec.dev`, region **Ireland (eu-west-1)**.
+3. Resend lists three DNS records (an MX and an SPF TXT on `send.shoppy.korec.dev`, a DKIM TXT on `resend._domainkey.shoppy.korec.dev`). Add each one in Cloudflare → `korec.dev` → **DNS**, proxy status **DNS only**. Resend's _Auto configure_ button for Cloudflare does the same.
+4. Add a DMARC record in Cloudflare as well. Only Resend sends from this domain, so mail that fails DKIM can be quarantined:
+
+   | Type | Name            | Content                  |
+   | ---- | --------------- | ------------------------ |
+   | TXT  | `_dmarc.shoppy` | `v=DMARC1; p=quarantine` |
+
+5. Back in Resend, click **Verify DNS records** and wait for _Verified_.
+6. **API keys → Create API key**: name `shoppy-api`, permission _Sending access_, domain `shoppy.korec.dev`. Copy it and store it right away:
+
+```bash
+pbpaste | tr -d '\n' | gcloud secrets create shoppy-resend-api-key --data-file=-
+```
+
+### 10.3 Google sign-in client (GCP console, ~5 min)
+
+1. <https://console.cloud.google.com/auth/branding?project=shoppy-to-buy> → **Get started**: app name `Shoppy`, your support email, audience **External**, contact email. Finish.
+2. **Branding**: add the authorized domain `korec.dev`.
+3. **Audience → Publish app**. Shoppy only asks for name and email (non-sensitive scopes), so no Google review is needed. While the app is in _Testing_, only listed test users can sign in.
+4. **Clients → Create client**: type **Web application**, name `shoppy-web`, **Authorized JavaScript origins** `https://shoppy.korec.dev` and `http://localhost:5180`. No redirect URIs (the ID-token flow doesn't redirect).
+5. Copy the **Client ID** (not a secret; it ships in the web bundle):
+
+```bash
+gh variable set GOOGLE_CLIENT_ID --repo "$GITHUB_REPO" --body "<id>.apps.googleusercontent.com"
+```
+
+For local development put the same ID into `apps/api/.env` (`GOOGLE_CLIENT_ID=`) and `apps/web/.env.local` (`VITE_GOOGLE_CLIENT_ID=`). Without it the Google button is hidden.
+
+### 10.4 Let the API read the new secrets
+
+```bash
+for s in shoppy-jwt-secret shoppy-resend-api-key; do
+  gcloud secrets add-iam-policy-binding "$s" \
+    --member="serviceAccount:$RUNTIME_SA" --role=roles/secretmanager.secretAccessor
+done
+```
+
+### 10.5 Verify on the phone
+
+After the deploy:
+
+1. In the installed PWA, **Create an account** with a real address. The confirmation email should arrive within a minute (check spam the first time).
+2. The link opens in Safari (iOS) or Chrome, not in the installed app. After "Email confirmed", switch back to the app and tap **I've confirmed it**.
+3. Close the app completely and reopen it: you should still be signed in.
+4. Sign out, then **Continue with Google** inside the installed app. This is the iOS PWA spike (P0-07): it should sign you in without leaving the app, and stay signed in after a restart.
+
+## Later: Sentry
+
+Optional: create projects `shoppy-api` (NestJS) and `shoppy-web` (React), then `gh variable set SENTRY_DSN_API …` / `SENTRY_DSN_WEB …` and redeploy.
 
 ## Free-tier guardrails
 
@@ -253,4 +323,4 @@ The Profile tab should show **API: Online**.
 | Artifact Registry  | 0.5 GB storage                        | Cleanup policy keeps only the newest image (~110 MB compressed) |
 | Neon               | 0.5 GB storage, monthly compute hours | Scales to zero. Nothing pings the DB health check on a schedule |
 | Cloudflare Workers | 100k Worker requests/day              | Only `/api/*` invokes the Worker; static assets are free        |
-| Secret Manager     | 6 active secret versions              | Disable old versions after rotating                             |
+| Secret Manager     | 6 active secret versions              | 4 secrets in use; disable old versions after rotating           |

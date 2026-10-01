@@ -20,16 +20,16 @@ Icons for categories and lists come from an **icon library** (Lucide). We store 
 
 ### Authentication & account (MVP)
 
-| ID    | Requirement                                                                                                           |
-| ----- | --------------------------------------------------------------------------------------------------------------------- |
-| FR-A1 | A user can register with email + password.                                                                            |
-| FR-A2 | A user can sign in with Google. If a Google account's verified email matches an existing account, the two are linked. |
-| FR-A3 | Email verification after email/password registration (sent via Resend from `korec.dev`).                              |
-| FR-A4 | Password reset via email link.                                                                                        |
-| FR-A5 | Sessions last long: a user who opens the app at least once every 90 days never has to log in again (sliding expiry).  |
-| FR-A6 | A user can see active sessions (devices) and log out one or all of them.                                              |
-| FR-A7 | A user can edit their display name and change their password.                                                         |
-| FR-A8 | A user can delete their account. Households they own must first be transferred or deleted.                            |
+| ID    | Requirement                                                                                                                                 |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| FR-A1 | A user can register with name, email and password (at least 8 characters with a lowercase letter, an uppercase letter and a digit).         |
+| FR-A2 | A user can sign in with Google. If a Google account's verified email matches an existing account, the two are linked.                       |
+| FR-A3 | Email verification after email/password registration (sent via Resend from `korec.dev`). The app can't be used until the email is verified. |
+| FR-A4 | Password reset via email link.                                                                                                              |
+| FR-A5 | Sessions last long: a user who opens the app at least once every 90 days never has to log in again (sliding expiry).                        |
+| FR-A6 | A user can see active sessions (devices) and log out one or all of them.                                                                    |
+| FR-A7 | A user can edit their display name and change their password.                                                                               |
+| FR-A8 | A user can delete their account. Households they own must first be transferred or deleted.                                                  |
 
 ### Categories (MVP)
 
