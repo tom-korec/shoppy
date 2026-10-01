@@ -141,7 +141,8 @@ Cloud Run's URL is deterministic (`https://<service>-<project-number>.<region>.r
 | Secret   | `PROXY_SECRET`               | the same value as the `shoppy-proxy-secret` GCP secret |
 | Secret   | `CLOUDFLARE_API_TOKEN`       | step 3                                                 |
 
-3. Push to `main` (or run _Actions → Deploy → Run workflow_). Then check:
+3. Under _Settings → Secrets and variables → Actions → Variables_ (repository level), add `DEPLOY_ENABLED` = `true`. Until it is set, the Deploy workflow is skipped, so pushes before the setup is finished don't fail.
+4. Push to `main` (or run _Actions → Deploy → Run workflow_). Then check:
 
 ```bash
 curl https://shoppy.korec.dev/api/health          # {"status":"ok",...}
