@@ -33,7 +33,7 @@ Mobile-first PWA for personal and household shopping lists. Personal project: **
 ## Commands
 
 ```bash
-pnpm db:up                            # Postgres 17 on localhost:5442 (docker compose)
+pnpm db:up                            # Postgres 18 on localhost:5442 (docker compose)
 pnpm dev                              # shared watch + API :3000 + web :5180
 pnpm test | pnpm typecheck | pnpm lint | pnpm format | pnpm build
 pnpm --filter @shoppy/api db:migrate  # create + apply a Prisma migration

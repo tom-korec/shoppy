@@ -22,7 +22,7 @@ Requirements: Node ≥ 24, pnpm 9 (`corepack enable`), Docker.
 ```bash
 pnpm install
 cp apps/api/.env.example apps/api/.env
-pnpm db:up          # Postgres 17 on localhost:5442
+pnpm db:up          # Postgres 18 on localhost:5442
 pnpm dev            # shared (watch) + API on :3000 + web on :5180
 ```
 
