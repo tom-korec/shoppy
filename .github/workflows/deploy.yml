@@ -91,12 +91,13 @@ jobs:
       - run: pnpm turbo run build --filter @shoppy/web
         env:
           VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN_WEB }}
+      # Uploading secrets with the deployment also works for the very first deploy.
+      - run: printf 'PROXY_SECRET=%s\n' "$PROXY_SECRET" > "$RUNNER_TEMP/worker-secrets.env"
+        env:
+          PROXY_SECRET: ${{ secrets.PROXY_SECRET }}
       - uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/web
-          command: deploy --var API_ORIGIN:${{ vars.API_ORIGIN }}
-          secrets: PROXY_SECRET
-        env:
-          PROXY_SECRET: ${{ secrets.PROXY_SECRET }}
+          command: deploy --var API_ORIGIN:${{ vars.API_ORIGIN }} --secrets-file ${{ runner.temp }}/worker-secrets.env
