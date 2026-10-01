@@ -15,11 +15,16 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as VerifyPendingRouteImport } from './routes/verify-pending'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as AuthenticatedListsRouteImport } from './routes/_authenticated/lists'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as GuestForgotPasswordRouteImport } from './routes/_guest/forgot-password'
 import { Route as GuestRegisterRouteImport } from './routes/_guest/register'
 import { Route as GuestSignInRouteImport } from './routes/_guest/sign-in'
+import { Route as AuthenticatedCatalogIndexRouteImport } from './routes/_authenticated/catalog/index'
+import { Route as AuthenticatedCatalogCategoriesRouteImport } from './routes/_authenticated/catalog/categories'
+import { Route as AuthenticatedListsIndexRouteImport } from './routes/_authenticated/lists/index'
+import { Route as AuthenticatedListsListIdIndexRouteImport } from './routes/_authenticated/lists/$listId/index'
+import { Route as AuthenticatedListsListIdHistoryRouteImport } from './routes/_authenticated/lists/$listId/history'
+import { Route as AuthenticatedListsListIdShopRouteImport } from './routes/_authenticated/lists/$listId/shop'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -49,11 +54,6 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedListsRoute = AuthenticatedListsRouteImport.update({
-  id: '/lists',
-  path: '/lists',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -74,28 +74,73 @@ const GuestSignInRoute = GuestSignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => GuestRoute,
 } as any)
+const AuthenticatedCatalogIndexRoute =
+  AuthenticatedCatalogIndexRouteImport.update({
+    id: '/catalog/',
+    path: '/catalog/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCatalogCategoriesRoute =
+  AuthenticatedCatalogCategoriesRouteImport.update({
+    id: '/catalog/categories',
+    path: '/catalog/categories',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedListsIndexRoute = AuthenticatedListsIndexRouteImport.update({
+  id: '/lists/',
+  path: '/lists/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedListsListIdIndexRoute =
+  AuthenticatedListsListIdIndexRouteImport.update({
+    id: '/lists/$listId/',
+    path: '/lists/$listId/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedListsListIdHistoryRoute =
+  AuthenticatedListsListIdHistoryRouteImport.update({
+    id: '/lists/$listId/history',
+    path: '/lists/$listId/history',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedListsListIdShopRoute =
+  AuthenticatedListsListIdShopRouteImport.update({
+    id: '/lists/$listId/shop',
+    path: '/lists/$listId/shop',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
   '/verify-pending': typeof VerifyPendingRoute
-  '/lists': typeof AuthenticatedListsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/forgot-password': typeof GuestForgotPasswordRoute
   '/register': typeof GuestRegisterRoute
   '/sign-in': typeof GuestSignInRoute
+  '/catalog/categories': typeof AuthenticatedCatalogCategoriesRoute
+  '/catalog/': typeof AuthenticatedCatalogIndexRoute
+  '/lists/': typeof AuthenticatedListsIndexRoute
+  '/lists/$listId/history': typeof AuthenticatedListsListIdHistoryRoute
+  '/lists/$listId/shop': typeof AuthenticatedListsListIdShopRoute
+  '/lists/$listId/': typeof AuthenticatedListsListIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
   '/verify-pending': typeof VerifyPendingRoute
-  '/lists': typeof AuthenticatedListsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/forgot-password': typeof GuestForgotPasswordRoute
   '/register': typeof GuestRegisterRoute
   '/sign-in': typeof GuestSignInRoute
+  '/catalog/categories': typeof AuthenticatedCatalogCategoriesRoute
+  '/catalog': typeof AuthenticatedCatalogIndexRoute
+  '/lists': typeof AuthenticatedListsIndexRoute
+  '/lists/$listId/history': typeof AuthenticatedListsListIdHistoryRoute
+  '/lists/$listId/shop': typeof AuthenticatedListsListIdShopRoute
+  '/lists/$listId': typeof AuthenticatedListsListIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -104,12 +149,17 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
   '/verify-pending': typeof VerifyPendingRoute
-  '/_authenticated/lists': typeof AuthenticatedListsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_guest/forgot-password': typeof GuestForgotPasswordRoute
   '/_guest/register': typeof GuestRegisterRoute
   '/_guest/sign-in': typeof GuestSignInRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/catalog/categories': typeof AuthenticatedCatalogCategoriesRoute
+  '/_authenticated/catalog/': typeof AuthenticatedCatalogIndexRoute
+  '/_authenticated/lists/': typeof AuthenticatedListsIndexRoute
+  '/_authenticated/lists/$listId/history': typeof AuthenticatedListsListIdHistoryRoute
+  '/_authenticated/lists/$listId/shop': typeof AuthenticatedListsListIdShopRoute
+  '/_authenticated/lists/$listId/': typeof AuthenticatedListsListIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -118,22 +168,32 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/verify-email'
     | '/verify-pending'
-    | '/lists'
     | '/profile'
     | '/forgot-password'
     | '/register'
     | '/sign-in'
+    | '/catalog/categories'
+    | '/catalog/'
+    | '/lists/'
+    | '/lists/$listId/history'
+    | '/lists/$listId/shop'
+    | '/lists/$listId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/reset-password'
     | '/verify-email'
     | '/verify-pending'
-    | '/lists'
     | '/profile'
     | '/forgot-password'
     | '/register'
     | '/sign-in'
+    | '/catalog/categories'
+    | '/catalog'
+    | '/lists'
+    | '/lists/$listId/history'
+    | '/lists/$listId/shop'
+    | '/lists/$listId'
   id:
     | '__root__'
     | '/_authenticated'
@@ -141,12 +201,17 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/verify-email'
     | '/verify-pending'
-    | '/_authenticated/lists'
     | '/_authenticated/profile'
     | '/_guest/forgot-password'
     | '/_guest/register'
     | '/_guest/sign-in'
     | '/_authenticated/'
+    | '/_authenticated/catalog/categories'
+    | '/_authenticated/catalog/'
+    | '/_authenticated/lists/'
+    | '/_authenticated/lists/$listId/history'
+    | '/_authenticated/lists/$listId/shop'
+    | '/_authenticated/lists/$listId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -201,13 +266,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/lists': {
-      id: '/_authenticated/lists'
-      path: '/lists'
-      fullPath: '/lists'
-      preLoaderRoute: typeof AuthenticatedListsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/profile': {
       id: '/_authenticated/profile'
       path: '/profile'
@@ -236,19 +294,71 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuestSignInRouteImport
       parentRoute: typeof GuestRoute
     }
+    '/_authenticated/catalog/': {
+      id: '/_authenticated/catalog/'
+      path: '/catalog'
+      fullPath: '/catalog/'
+      preLoaderRoute: typeof AuthenticatedCatalogIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/catalog/categories': {
+      id: '/_authenticated/catalog/categories'
+      path: '/catalog/categories'
+      fullPath: '/catalog/categories'
+      preLoaderRoute: typeof AuthenticatedCatalogCategoriesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/lists/': {
+      id: '/_authenticated/lists/'
+      path: '/lists'
+      fullPath: '/lists/'
+      preLoaderRoute: typeof AuthenticatedListsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/lists/$listId/': {
+      id: '/_authenticated/lists/$listId/'
+      path: '/lists/$listId'
+      fullPath: '/lists/$listId/'
+      preLoaderRoute: typeof AuthenticatedListsListIdIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/lists/$listId/history': {
+      id: '/_authenticated/lists/$listId/history'
+      path: '/lists/$listId/history'
+      fullPath: '/lists/$listId/history'
+      preLoaderRoute: typeof AuthenticatedListsListIdHistoryRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/lists/$listId/shop': {
+      id: '/_authenticated/lists/$listId/shop'
+      path: '/lists/$listId/shop'
+      fullPath: '/lists/$listId/shop'
+      preLoaderRoute: typeof AuthenticatedListsListIdShopRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
-  AuthenticatedListsRoute: typeof AuthenticatedListsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedCatalogCategoriesRoute: typeof AuthenticatedCatalogCategoriesRoute
+  AuthenticatedCatalogIndexRoute: typeof AuthenticatedCatalogIndexRoute
+  AuthenticatedListsIndexRoute: typeof AuthenticatedListsIndexRoute
+  AuthenticatedListsListIdHistoryRoute: typeof AuthenticatedListsListIdHistoryRoute
+  AuthenticatedListsListIdShopRoute: typeof AuthenticatedListsListIdShopRoute
+  AuthenticatedListsListIdIndexRoute: typeof AuthenticatedListsListIdIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedListsRoute: AuthenticatedListsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedCatalogCategoriesRoute: AuthenticatedCatalogCategoriesRoute,
+  AuthenticatedCatalogIndexRoute: AuthenticatedCatalogIndexRoute,
+  AuthenticatedListsIndexRoute: AuthenticatedListsIndexRoute,
+  AuthenticatedListsListIdHistoryRoute: AuthenticatedListsListIdHistoryRoute,
+  AuthenticatedListsListIdShopRoute: AuthenticatedListsListIdShopRoute,
+  AuthenticatedListsListIdIndexRoute: AuthenticatedListsListIdIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

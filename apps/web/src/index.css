@@ -12,6 +12,8 @@
   --success: #16a34a;
   --warning: #d97706;
   --danger: #dc2626;
+  --danger-foreground: #ffffff;
+  --overlay: rgb(15 23 42 / 0.4);
   color-scheme: light;
 }
 
@@ -28,6 +30,8 @@
     --success: #22c55e;
     --warning: #f59e0b;
     --danger: #f87171;
+    --danger-foreground: #1f0606;
+    --overlay: rgb(0 0 0 / 0.6);
     color-scheme: dark;
   }
 }
@@ -44,6 +48,8 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-overlay: var(--overlay);
 }
 
 @layer base {

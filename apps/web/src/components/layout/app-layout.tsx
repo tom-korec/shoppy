@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from '@tanstack/react-router';
 import { useAuth } from '@/features/auth/use-auth';
 import { BottomNav } from './bottom-nav';
+import { Toaster } from './toaster';
 
 export function AppLayout() {
   const auth = useAuth();
@@ -13,6 +14,7 @@ export function AppLayout() {
       <main className="min-h-full pb-[calc(4rem+env(safe-area-inset-bottom))]">
         <Outlet />
       </main>
+      <Toaster />
       <BottomNav />
     </>
   );

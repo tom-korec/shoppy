@@ -12,9 +12,9 @@ test('register, confirm email, stay signed in across reloads, sign out and back 
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
   await page.getByRole('link', { name: 'Create an account' }).click();
-  await page.getByLabel('Name').fill('E2E Shopper');
-  await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password').fill(PASSWORD);
+  await page.getByLabel('Name', { exact: true }).fill('E2E Shopper');
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page.getByRole('heading', { name: 'Check your inbox' })).toBeVisible();
 
@@ -31,8 +31,8 @@ test('register, confirm email, stay signed in across reloads, sign out and back 
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
 
-  await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password').fill(PASSWORD);
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByRole('heading', { name: 'Shoppy' })).toBeVisible();
 });
@@ -40,8 +40,8 @@ test('register, confirm email, stay signed in across reloads, sign out and back 
 test('rejects a wrong password', async ({ page }) => {
   await page.goto('/sign-in');
 
-  await page.getByLabel('Email').fill(`nobody-${randomUUID()}@shoppy.test`);
-  await page.getByLabel('Password').fill(PASSWORD);
+  await page.getByLabel('Email', { exact: true }).fill(`nobody-${randomUUID()}@shoppy.test`);
+  await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
   await page.getByRole('button', { name: 'Sign in' }).click();
 
   await expect(page.getByRole('alert')).toHaveText('Wrong email or password');

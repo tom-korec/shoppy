@@ -12,6 +12,7 @@ const buttonVariants = cva(
         secondary: 'border border-border bg-card text-foreground',
         ghost: 'text-foreground',
         danger: 'border border-border bg-card text-danger',
+        dangerSolid: 'bg-danger text-danger-foreground',
       },
       width: {
         auto: '',

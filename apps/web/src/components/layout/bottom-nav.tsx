@@ -1,8 +1,8 @@
 import { Link } from '@tanstack/react-router';
-import { CircleUser, House, ListChecks, type LucideIcon } from 'lucide-react';
+import { CircleUser, House, ListChecks, type LucideIcon, Package } from 'lucide-react';
 
 interface NavItem {
-  to: '/' | '/lists' | '/profile';
+  to: '/' | '/lists' | '/catalog' | '/profile';
   label: string;
   icon: LucideIcon;
 }
@@ -10,6 +10,7 @@ interface NavItem {
 const ITEMS: NavItem[] = [
   { to: '/', label: 'Home', icon: House },
   { to: '/lists', label: 'Lists', icon: ListChecks },
+  { to: '/catalog', label: 'Catalog', icon: Package },
   { to: '/profile', label: 'Profile', icon: CircleUser },
 ];
 
