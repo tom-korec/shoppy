@@ -61,22 +61,23 @@ flowchart LR
 
 **Goal:** the app is fully usable for one person.
 
-| ID     | Task                                                                                                                                                 |
-| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P2-01  | Scope abstraction in the API (personal / household resolver) + personal-scope guard                                                                  |
-| P2-02  | Curated Lucide icon set + icon picker component                                                                                                      |
-| P2-03  | Categories CRUD + reorder (API + UI)                                                                                                                 |
-| P2-04  | Items (catalog) CRUD, search, filter by category (API + UI)                                                                                          |
-| P2-05  | Lists CRUD + archive (API + UI)                                                                                                                      |
-| P2-06  | List detail: entries grouped by category, quick-add box with catalog autocomplete, one-time entries                                                  |
-| P2-07  | Entry note editing; delete entry (permanent); duplicates allowed (FR-L10)                                                                            |
-| P2-08  | Check entry → purchase record; collapsed **Recent history** section with the adaptive 7d/30d window (FR-L12)                                         |
-| P2-09  | Promote a one-time entry to a catalog item                                                                                                           |
-| P2-10  | History screen (paginated); **restore** (moves back) and **re-add** (copy) from history; delete history records                                      |
-| P2-10b | Bulk actions: multi-select mode on entries (check/delete), Check all / Delete all with confirmation, multi-select in history (restore/re-add/delete) |
-| P2-11  | Optimistic updates for add/check/restore/delete (snappy UX in the shop)                                                                              |
-| P2-12  | Item deletion → entries become one-time entries (FR-I6)                                                                                              |
-| P2-13  | Tests: API integration for all of the above; E2E "create list → add → check → restore" and bulk check                                                |
+| ID     | Task                                                                                                                                                                                                       |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P2-01  | Scope abstraction in the API (personal / household resolver) + personal-scope guard — ✅ Done. Collections live under `/scopes/personal/...`; by-id routes only reach the user's own rows (others get 404) |
+| P2-02  | Curated Lucide icon set + icon picker component — ✅ Done (63 icons shared by lists and categories)                                                                                                        |
+| P2-03  | Categories CRUD + reorder (API + UI) — ✅ Done, reorder with a drag handle (D-49). Managed from the Catalog tab (D-48)                                                                                     |
+| P2-04  | Items (catalog) CRUD, search, filter by category (API + UI) — ✅ Done. Search and filter run on the device (D-51)                                                                                          |
+| P2-05  | Lists CRUD + archive (API + UI) — ✅ Done. Archived lists sit in a collapsed section and are read-only (D-49)                                                                                              |
+| P2-06  | List detail: entries grouped by category, quick-add box with catalog autocomplete, one-time entries — ✅ Done. Quick add takes a note after a comma (D-49)                                                 |
+| P2-07  | Entry note editing; delete entry (permanent); duplicates allowed (FR-L10) — ✅ Done, in a bottom sheet with Undo after delete                                                                              |
+| P2-08  | Check entry → purchase record; collapsed **Recent history** section with the adaptive 7d/30d window (FR-L12) — ✅ Done, with an Undo toast (D-47)                                                          |
+| P2-09  | Promote a one-time entry to a catalog item — ✅ Done (D-53)                                                                                                                                                |
+| P2-10  | History screen (paginated); **restore** (moves back) and **re-add** (copy) from history; delete history records — ✅ Done                                                                                  |
+| P2-10b | Bulk actions: multi-select mode on entries (check/delete), Check all / Delete all with confirmation, multi-select in history (restore/re-add/delete) — ✅ Done                                             |
+| P2-11  | Optimistic updates for add/check/restore/delete (snappy UX in the shop) — ✅ Done. Changes to one list run in order (D-50)                                                                                 |
+| P2-12  | Item deletion → entries become one-time entries (FR-I6) — ✅ Done                                                                                                                                          |
+| P2-13  | Tests: API integration for all of the above; E2E "create list → add → check → restore" and bulk check — ✅ Done, plus an E2E for shopping mode                                                             |
+| P2-14  | Shopping mode: tap to strike entries through, Finish moves them to history (FR-L19) — ✅ Done (added in Phase 2, D-47)                                                                                     |
 
 **Done when:** a single user can manage categories, their catalog and lists end to end on a phone.
 

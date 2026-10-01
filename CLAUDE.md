@@ -50,4 +50,6 @@ pnpm --filter @shoppy/web cf:dev      # built PWA behind the Worker (needs apps/
 - `AGENTS.md` is managed by Turborepo; don't edit it by hand.
 - API tests hit a real Postgres (`shoppy_test`, created and migrated automatically), so `pnpm db:up` must be running.
 - Every route requires a signed-in, verified user unless marked `@Public()` or `@AllowUnverified()`.
+- Scoped rows (categories, items, lists) are loaded with `accessibleBy(user)` / `findAccessibleList()`, so other users' rows answer 404. Archived lists are read-only (409).
+- Entries are ordered by id: ids chosen by the app must be UUIDv7 (`uuidV7()` from `@shoppy/shared`). Web mutations on a list use `listMutationOptions(listId)` so they run in order.
 - Every API request in production must carry the proxy secret header. Use `createTestApp()` in e2e tests rather than bootstrapping Nest by hand.

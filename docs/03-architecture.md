@@ -114,7 +114,7 @@ flowchart LR
 
 - A NestJS `PermissionsGuard` plus a decorator, e.g. `@RequirePermission('entry.check')`, on household-scoped routes.
 - The guard resolves the **scope** from the route (list → its scope, item → its scope, …):
-  - personal scope → allowed only if `ownerUserId === currentUser`;
+  - personal scope → allowed only if `ownerUserId === currentUser`. Phase 2 implements this in the services: by-id lookups filter with `accessibleBy(user)`, so another user's row answers **404** (ids don't leak), and `/scopes/personal/...` routes take the scope from `@CurrentScope()` (`apps/api/src/common/scope/`);
   - household scope → load the membership and compute effective permissions (FR-R5); the result is cached per request.
 - Rules for acting on another member (FR-R6) are checked in the members service, not only by permissions.
 - The **permission matrix test** generates a test case for every (role × permission × override) combination.
@@ -237,13 +237,14 @@ erDiagram
         uuid created_by FK
     }
     LIST_ENTRY {
-        uuid id PK
+        uuid id PK "UUIDv7, may be chosen by the client"
         uuid list_id FK
         uuid item_id FK "nullable = one-time"
         text text "one-time name"
         uuid category_id FK "one-time only, optional"
         text note
-        int position
+        timestamptz checked_at "shopping mode"
+        uuid checked_by FK
         uuid added_by FK
         timestamptz created_at
     }
@@ -275,28 +276,31 @@ Key constraints:
 
 - `CHECK ((owner_user_id IS NULL) <> (household_id IS NULL))` on CATEGORY, ITEM, LIST.
 - ITEM.category_id must be in the same scope (enforced in the service layer, plus a composite FK where practical).
-- LIST_ENTRY: `CHECK (item_id IS NOT NULL OR text IS NOT NULL)`; the entry's item must be in the list's scope (FR-L4).
+- LIST_ENTRY: `CHECK ((item_id IS NULL) <> (text IS NULL))` and `CHECK (item_id IS NULL OR category_id IS NULL)` (only one-time entries carry a category); the entry's item must be in the list's scope (FR-L4). Entries are listed in id order (UUIDv7, D-50), index `(list_id, id)`.
+- LIST_ENTRY.checked_at / checked_by: struck through in shopping mode; Finish turns them into purchase records with `bought_at = checked_at` (D-47).
 - Unique `(scope, lower(name))` on ITEM and CATEGORY.
 - No uniqueness on `(list_id, item_id)`: the same item may appear several times (FR-L10).
 - HOUSEHOLD_MEMBER unique `(household_id, user_id)`; exactly one OWNER per household (partial unique index).
 - PURCHASE_RECORD keeps `name_snapshot` so history survives item deletion. Index `(list_id, bought_at DESC)` serves both the adaptive recent window and pagination.
 - **Check** = one transaction: insert PURCHASE_RECORD, delete LIST_ENTRY. **Restore** = the reverse. **Re-add** = insert LIST_ENTRY only.
+- Deleting an ITEM first turns its entries into one-time entries (name and category copied, FR-I6); PURCHASE_RECORD.item_id is set to NULL.
+- Phase 2 tables are personal-scope only (`owner_user_id NOT NULL`); Phase 3 adds `household_id` and the scope CHECK.
 
 ## 3.7 API outline (REST, `/api`)
 
-| Area        | Endpoints                                                                                                                                                                                                                            |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Auth        | `POST /auth/register`, `/auth/login`, `/auth/google`, `/auth/refresh`, `/auth/logout`, `/auth/verify-email`, `/auth/resend-verification`, `/auth/forgot-password`, `/auth/reset-password`                                            |
-| Me          | `GET/PATCH /me`, `POST /me/password`, `GET /me/sessions`, `DELETE /me/sessions/:id`, `DELETE /me/sessions` (all), `DELETE /me`, `GET /me/export`, `GET /me/dashboard`, `GET/POST/PATCH/DELETE /me/favorites`                         |
-| Scopes      | Resources are addressed by scope: `/scopes/personal/...` and `/scopes/households/:hid/...`                                                                                                                                           |
-| Categories  | `GET/POST {scope}/categories`, `PATCH/DELETE /categories/:id`, `POST {scope}/categories/reorder`                                                                                                                                     |
-| Items       | `GET/POST {scope}/items`, `PATCH/DELETE /items/:id`, `POST /items/copy` (target scope + item ids)                                                                                                                                    |
-| Lists       | `GET/POST {scope}/lists`, `GET/PATCH/DELETE /lists/:id`                                                                                                                                                                              |
-| Entries     | `POST /lists/:id/entries`, `PATCH/DELETE /entries/:id`, `POST /entries/:id/check`, `POST /entries/:id/promote`, `POST /lists/:id/entries/bulk` (`{action: check\|delete, ids \| all}`)                                               |
-| History     | `GET /lists/:id/history?recent=true` (adaptive window, FR-L12) or paginated, `POST /history/:id/restore`, `POST /history/:id/readd`, `DELETE /history/:id`, `POST /lists/:id/history/bulk` (`{action: restore\|readd\|delete, ids}`) |
-| Households  | `GET/POST /households`, `GET/PATCH/DELETE /households/:id`, `POST /households/:id/transfer`, `POST /households/:id/leave`                                                                                                            |
-| Members     | `GET /households/:id/members`, `PATCH /members/:id` (role, overrides), `DELETE /members/:id`                                                                                                                                         |
-| Invitations | `POST /households/:id/invitations`, `GET /households/:id/invitations`, `DELETE /invitations/:id`, `GET /invitations/pending`, `POST /invitations/accept` (token or code), `POST /invitations/:id/decline`                            |
+| Area        | Endpoints                                                                                                                                                                                                                                                                              |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth        | `POST /auth/register`, `/auth/login`, `/auth/google`, `/auth/refresh`, `/auth/logout`, `/auth/verify-email`, `/auth/resend-verification`, `/auth/forgot-password`, `/auth/reset-password`                                                                                              |
+| Me          | `GET/PATCH /me`, `POST /me/password`, `GET /me/sessions`, `DELETE /me/sessions/:id`, `DELETE /me/sessions` (all), `DELETE /me`, `GET /me/export`, `GET /me/dashboard`, `GET/POST/PATCH/DELETE /me/favorites`                                                                           |
+| Scopes      | Resources are addressed by scope: `/scopes/personal/...` and `/scopes/households/:hid/...`                                                                                                                                                                                             |
+| Categories  | `GET/POST {scope}/categories`, `PATCH/DELETE /categories/:id`, `POST {scope}/categories/reorder` (the complete new order)                                                                                                                                                              |
+| Items       | `GET/POST {scope}/items`, `PATCH/DELETE /items/:id`, `POST /items/copy` (target scope + item ids)                                                                                                                                                                                      |
+| Lists       | `GET/POST {scope}/lists`, `GET/PATCH/DELETE /lists/:id`                                                                                                                                                                                                                                |
+| Entries     | `POST /lists/:id/entries`, `PATCH/DELETE /entries/:id`, `POST /entries/:id/check`, `POST /entries/:id/promote`, `POST /lists/:id/entries/bulk` (`{action: check\|delete, ids \| all}`), `POST /lists/:id/finish-shopping`; `PATCH /entries/:id` also takes `isChecked` (shopping mode) |
+| History     | `GET /lists/:id/history/recent` (adaptive window, FR-L12), `GET /lists/:id/history?cursor=&limit=` (paginated), `POST /history/:id/restore`, `POST /history/:id/readd`, `DELETE /history/:id`, `POST /lists/:id/history/bulk` (`{action: restore\|readd\|delete, ids}`)                |
+| Households  | `GET/POST /households`, `GET/PATCH/DELETE /households/:id`, `POST /households/:id/transfer`, `POST /households/:id/leave`                                                                                                                                                              |
+| Members     | `GET /households/:id/members`, `PATCH /members/:id` (role, overrides), `DELETE /members/:id`                                                                                                                                                                                           |
+| Invitations | `POST /households/:id/invitations`, `GET /households/:id/invitations`, `DELETE /invitations/:id`, `GET /invitations/pending`, `POST /invitations/accept` (token or code), `POST /invitations/:id/decline`                                                                              |
 
 ## 3.8 PWA specifics
 
