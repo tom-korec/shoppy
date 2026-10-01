@@ -1,8 +1,10 @@
 import { Controller, Get } from '@nestjs/common';
 import type { HealthResponse } from '@shoppy/shared';
+import { Public } from '../../../common/auth/public.decorator.js';
 import { HealthService } from '../health.service.js';
 
 // Answers 200 even when the database is down, so Cloud Run keeps the instance alive.
+@Public()
 @Controller('health')
 export class GetHealthEndpoint {
   constructor(private readonly health: HealthService) {}
