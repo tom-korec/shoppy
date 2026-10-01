@@ -9,14 +9,8 @@ interface TestAppOptions {
   env?: Record<string, string>;
 }
 
-const BASE_ENV = {
-  NODE_ENV: 'test',
-  DATABASE_URL: 'postgresql://test:test@localhost:5432/test',
-  PROXY_SECRET: '',
-};
-
 export async function createTestApp(options: TestAppOptions = {}): Promise<NestFastifyApplication> {
-  Object.assign(process.env, BASE_ENV, options.env);
+  Object.assign(process.env, options.env);
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(PrismaService)
