@@ -1,6 +1,6 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { type AuthSessionDto, authSessionSchema } from '@shoppy/shared';
-import { randomUUID } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import { PrismaService } from '../../src/infrastructure/prisma/prisma.service.js';
 
 export const TEST_PASSWORD = 'Secret123';
@@ -24,6 +24,12 @@ export function readRefreshCookie(res: { headers: Record<string, unknown> }): st
   return cookie?.split(';')[0];
 }
 
+// Each fixture user registers from its own address, so one app can serve many tests without
+// tripping the per-IP registration limit.
+function uniqueIpv4(): string {
+  return `10.${randomInt(256)}.${randomInt(256)}.${randomInt(1, 255)}`;
+}
+
 export async function registerUser(
   app: NestFastifyApplication,
   options: { isVerified?: boolean; email?: string } = {},
@@ -32,6 +38,7 @@ export async function registerUser(
   const res = await app.inject({
     method: 'POST',
     url: '/api/auth/register',
+    remoteAddress: uniqueIpv4(),
     payload: { displayName: 'Anna', email, password: TEST_PASSWORD },
   });
   if (res.statusCode !== 201) throw new Error(`Registration failed: ${res.body}`);

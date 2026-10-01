@@ -48,4 +48,11 @@ describe('RateLimiter memory bound', () => {
 
     expect(() => limiter.consume('first', rule, 2)).not.toThrow();
   });
+
+  it('spends several units at once', () => {
+    const limiter = new RateLimiter();
+    limiter.consumeMany('user:1', RULE, RULE.limit - 1, 0);
+
+    expect(() => limiter.consumeMany('user:1', RULE, 2, 10)).toThrow('Too many attempts');
+  });
 });

@@ -20,15 +20,20 @@ export class RateLimiter {
   private lastSweepAt = 0;
 
   consume(key: string, rule: RateLimitRule, now = Date.now()): void {
+    this.consumeMany(key, rule, 1, now);
+  }
+
+  // Spends several units at once, e.g. one per row a bulk request writes.
+  consumeMany(key: string, rule: RateLimitRule, cost: number, now = Date.now()): void {
     this.keepBounded(now);
 
-    const bucket = this.buckets.get(key);
+    let bucket = this.buckets.get(key);
     if (!bucket || bucket.resetAt <= now) {
-      this.buckets.set(key, { count: 1, resetAt: now + rule.windowMs });
-      return;
+      bucket = { count: 0, resetAt: now + rule.windowMs };
+      this.buckets.set(key, bucket);
     }
 
-    bucket.count += 1;
+    bucket.count += cost;
     if (bucket.count > rule.limit) {
       throw new HttpException('Too many attempts. Try again later.', HttpStatus.TOO_MANY_REQUESTS);
     }

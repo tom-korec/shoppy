@@ -2,10 +2,10 @@
 // Models are added phase by phase.
 
 generator client {
-  provider               = "prisma-client"
-  output                 = "../src/generated/prisma"
-  moduleFormat           = "esm"
-  importFileExtension    = "js"
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
 }
 
 datasource db {
@@ -21,10 +21,17 @@ model User {
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
-  identities  AuthIdentity[]
-  sessions    SessionFamily[]
-  emailTokens EmailToken[]
-  categories  Category[]
+  identities     AuthIdentity[]
+  sessions       SessionFamily[]
+  emailTokens    EmailToken[]
+  categories     Category[]
+  items          Item[]           @relation("ItemOwner")
+  itemsCreated   Item[]           @relation("ItemCreator")
+  lists          List[]           @relation("ListOwner")
+  listsCreated   List[]           @relation("ListCreator")
+  entriesAdded   ListEntry[]      @relation("EntryAddedBy")
+  entriesChecked ListEntry[]      @relation("EntryCheckedBy")
+  purchases      PurchaseRecord[]
 
   @@map("users")
 }
@@ -89,7 +96,8 @@ model EmailToken {
   @@map("email_tokens")
 }
 
-// Personal scope only for now; Phase 3 adds household_id and the scope XOR check.
+// Categories, items and lists are personal-scope only for now; Phase 3 adds household_id
+// and the scope XOR check (docs/03-architecture.md §3.6).
 model Category {
   id          String   @id @default(uuid(7)) @db.Uuid
   ownerUserId String   @map("owner_user_id") @db.Uuid
@@ -99,8 +107,101 @@ model Category {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  owner User @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  owner   User        @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  items   Item[]
+  entries ListEntry[]
 
   @@index([ownerUserId, position])
   @@map("categories")
+}
+
+model Item {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  ownerUserId String   @map("owner_user_id") @db.Uuid
+  name        String
+  description String?
+  categoryId  String?  @map("category_id") @db.Uuid
+  createdById String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  owner     User             @relation("ItemOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  createdBy User?            @relation("ItemCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  category  Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  entries   ListEntry[]
+  purchases PurchaseRecord[]
+
+  @@index([ownerUserId])
+  @@index([categoryId])
+  @@index([createdById])
+  @@map("items")
+}
+
+model List {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  ownerUserId String    @map("owner_user_id") @db.Uuid
+  name        String
+  icon        String
+  archivedAt  DateTime? @map("archived_at") @db.Timestamptz
+  createdById String?   @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  owner     User             @relation("ListOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  createdBy User?            @relation("ListCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  entries   ListEntry[]
+  purchases PurchaseRecord[]
+
+  @@index([ownerUserId])
+  @@index([createdById])
+  @@map("lists")
+}
+
+// An entry references a catalog item, or is a one-time entry with its own text and
+// optional category (CHECK constraints in the migration).
+model ListEntry {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  listId      String    @map("list_id") @db.Uuid
+  itemId      String?   @map("item_id") @db.Uuid
+  text        String?
+  categoryId  String?   @map("category_id") @db.Uuid
+  note        String?
+  checkedAt   DateTime? @map("checked_at") @db.Timestamptz
+  checkedById String?   @map("checked_by") @db.Uuid
+  addedById   String?   @map("added_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  list      List      @relation(fields: [listId], references: [id], onDelete: Cascade)
+  item      Item?     @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  category  Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  checkedBy User?     @relation("EntryCheckedBy", fields: [checkedById], references: [id], onDelete: SetNull)
+  addedBy   User?     @relation("EntryAddedBy", fields: [addedById], references: [id], onDelete: SetNull)
+
+  @@index([listId, id])
+  @@index([itemId])
+  @@index([categoryId])
+  @@index([checkedById])
+  @@index([addedById])
+  @@map("list_entries")
+}
+
+model PurchaseRecord {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  listId           String   @map("list_id") @db.Uuid
+  itemId           String?  @map("item_id") @db.Uuid
+  nameSnapshot     String   @map("name_snapshot")
+  categorySnapshot String?  @map("category_snapshot")
+  note             String?
+  boughtById       String?  @map("bought_by") @db.Uuid
+  boughtAt         DateTime @map("bought_at") @db.Timestamptz
+
+  list     List  @relation(fields: [listId], references: [id], onDelete: Cascade)
+  item     Item? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  boughtBy User? @relation(fields: [boughtById], references: [id], onDelete: SetNull)
+
+  @@index([listId, boughtAt(sort: Desc), id(sort: Desc)])
+  @@index([itemId])
+  @@index([boughtById])
+  @@map("purchase_records")
 }
