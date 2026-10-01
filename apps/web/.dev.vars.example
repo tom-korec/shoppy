@@ -1,0 +1,3 @@
+# Copy to .dev.vars for `pnpm cf:dev` (local Worker that proxies to the local API).
+API_ORIGIN=http://localhost:3000
+PROXY_SECRET=

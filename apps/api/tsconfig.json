@@ -1,0 +1,15 @@
+{
+  "extends": "@shoppy/config/tsconfig.node.json",
+  "compilerOptions": {
+    "resolvePackageJsonExports": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "removeComments": true,
+    "outDir": "./dist",
+    "rootDir": ".",
+    "incremental": true,
+    "strictPropertyInitialization": false,
+    "types": ["vitest/globals", "node"]
+  },
+  "include": ["src", "test", "*.config.ts"]
+}

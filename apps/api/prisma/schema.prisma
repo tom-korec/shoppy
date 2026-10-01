@@ -1,0 +1,13 @@
+// Data model: see docs/03-architecture.md §3.6.
+// Models are added phase by phase (Phase 1 starts with users and sessions).
+
+generator client {
+  provider               = "prisma-client"
+  output                 = "../src/generated/prisma"
+  moduleFormat           = "esm"
+  importFileExtension    = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}

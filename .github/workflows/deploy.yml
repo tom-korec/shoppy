@@ -1,0 +1,101 @@
+name: Deploy
+
+# Production deploy on every push to main. One-time setup: docs/06-infrastructure.md.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # Workload Identity Federation (no JSON keys)
+
+env:
+  REGION: europe-west3
+  SERVICE: shoppy-api
+  IMAGE: europe-west3-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/shoppy/api:${{ github.sha }}
+
+jobs:
+  api:
+    name: API → Cloud Run
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.IMAGE }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter "@shoppy/api..."
+      - name: Apply database migrations
+        run: pnpm --filter @shoppy/api db:deploy
+        env:
+          # Neon *direct* (non-pooled) connection string; migrations need a session connection.
+          DATABASE_URL: ${{ secrets.DATABASE_URL_DIRECT }}
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "$SERVICE" \
+            --image "$IMAGE" \
+            --region "$REGION" \
+            --service-account "shoppy-api-runtime@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com" \
+            --allow-unauthenticated \
+            --port 8080 \
+            --cpu 1 --memory 512Mi \
+            --min-instances 0 --max-instances 2 \
+            --concurrency 80 \
+            --cpu-boost \
+            --set-env-vars "NODE_ENV=production,LOG_LEVEL=info,APP_VERSION=${GITHUB_SHA::7},SENTRY_DSN=${{ vars.SENTRY_DSN_API }}" \
+            --set-secrets "DATABASE_URL=shoppy-database-url:latest,PROXY_SECRET=shoppy-proxy-secret:latest" \
+            --quiet
+
+  web:
+    name: Web → Cloudflare Workers
+    needs: api
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter "@shoppy/web..."
+      - run: echo "VITE_APP_VERSION=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+      - run: pnpm turbo run build --filter @shoppy/web
+        env:
+          VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN_WEB }}
+      - uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/web
+          command: deploy --var API_ORIGIN:${{ vars.API_ORIGIN }}
+          secrets: PROXY_SECRET
+        env:
+          PROXY_SECRET: ${{ secrets.PROXY_SECRET }}

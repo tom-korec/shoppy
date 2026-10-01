@@ -1,0 +1,22 @@
+{
+  // Cloudflare Worker serving the PWA (static assets) and proxying /api/* to Cloud Run.
+  // See docs/06-infrastructure.md.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "shoppy-web",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-15",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Only API calls invoke the Worker; static files are served directly (free, unlimited).
+    "run_worker_first": ["/api/*"],
+  },
+  "routes": [{ "pattern": "shoppy.korec.dev", "custom_domain": true }],
+  "observability": { "enabled": true },
+  "vars": {
+    // Cloud Run service URL, e.g. https://shoppy-api-xxxxx-ey.a.run.app (set per environment).
+    "API_ORIGIN": "",
+  },
+  // Secret (wrangler secret put PROXY_SECRET): shared with the API's PROXY_SECRET.
+}

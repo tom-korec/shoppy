@@ -1,0 +1,16 @@
+node_modules
+dist
+coverage
+.turbo
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.DS_Store
+.wrangler
+.dev.vars
+apps/api/src/generated
+apps/web/dev-dist
+playwright-report
+test-results
+.claude/settings.local.json

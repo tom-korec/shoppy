@@ -1,0 +1,8 @@
+pnpm-lock.yaml
+dist
+coverage
+.turbo
+**/generated/**
+apps/web/src/routeTree.gen.ts
+apps/web/dev-dist
+apps/web/worker-configuration.d.ts
