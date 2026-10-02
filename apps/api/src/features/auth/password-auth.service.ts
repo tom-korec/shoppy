@@ -37,7 +37,7 @@ export class PasswordAuthService {
         const created = await tx.user.create({
           data: { email: input.email, displayName: input.displayName, passwordHash },
         });
-        await seedDefaultCategories(tx, created.id);
+        await seedDefaultCategories(tx, { kind: 'personal', userId: created.id });
         return created;
       })
       .catch((error: unknown) => {

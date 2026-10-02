@@ -1,5 +1,5 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { ENTRIES_MAX_PER_LIST, uuidV7 } from '@shoppy/shared';
+import { ENTRIES_MAX_PER_LIST, listDetailSchema, uuidV7 } from '@shoppy/shared';
 import { registerUser } from '../support/auth-fixtures.js';
 import { insertRows } from '../support/insert-rows.js';
 import { createTestApp } from '../support/create-test-app.js';
@@ -10,6 +10,7 @@ import {
   createItem,
   createList,
   listCategories,
+  parseOk,
 } from '../support/shopping-fixtures.js';
 
 describe('POST /api/lists/:listId/entries', () => {
@@ -171,5 +172,15 @@ describe('POST /api/lists/:listId/entries', () => {
     const res = await apiAs(app, user)('POST', `/lists/${list.id}/entries`, { text: 'Milk' });
 
     expect(res.statusCode).toBe(409);
+  });
+
+  it("moves the list's last activity", async () => {
+    const user = await registerUser(app);
+    const list = await createList(app, user);
+
+    await addEntry(app, user, list.id, { text: 'Milk' });
+
+    const updated = parseOk(await apiAs(app, user)('GET', `/lists/${list.id}`), listDetailSchema);
+    expect(Date.parse(updated.lastActivityAt)).toBeGreaterThan(Date.parse(list.lastActivityAt));
   });
 });

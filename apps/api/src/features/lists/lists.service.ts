@@ -9,7 +9,8 @@ import {
 import type { AuthUser } from '../../common/auth/auth-user.js';
 import { UserWriteBudget } from '../../common/rate-limit/user-write-budget.service.js';
 import { lockScope } from '../../common/scope/lock-scope.js';
-import { accessibleBy, type Scope, scopeWhere } from '../../common/scope/scope.js';
+import { accessibleBy, type Scope, scopeOf, scopeWhere } from '../../common/scope/scope.js';
+import { ScopeAccess } from '../../common/scope/scope-access.service.js';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service.js';
 import { ENTRY_DTO_INCLUDE, toEntryDto } from '../entries/entry-dto.js';
 import { findAccessibleList } from './find-accessible-list.js';
@@ -19,10 +20,22 @@ import { LIST_DTO_INCLUDE, toListDto } from './list-dto.js';
 export class ListsService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly access: ScopeAccess,
     private readonly writeBudget: UserWriteBudget,
   ) {}
 
-  async list(scope: Scope): Promise<ListDto[]> {
+  // Every list the user can see: personal ones and those of their households.
+  async listAll(user: AuthUser): Promise<ListDto[]> {
+    const lists = await this.prisma.list.findMany({
+      where: accessibleBy(user),
+      orderBy: { createdAt: 'desc' },
+      include: LIST_DTO_INCLUDE,
+    });
+    return lists.map(toListDto);
+  }
+
+  async list(user: AuthUser, scope: Scope): Promise<ListDto[]> {
+    await this.access.grant(user, scope);
     const lists = await this.prisma.list.findMany({
       where: scopeWhere(scope),
       orderBy: { createdAt: 'desc' },
@@ -32,6 +45,7 @@ export class ListsService {
   }
 
   async create(user: AuthUser, scope: Scope, input: CreateListInput): Promise<ListDto> {
+    await this.access.require(user, scope, 'list.create');
     this.writeBudget.spend(user, 1);
     const list = await this.prisma.$transaction(async (tx) => {
       await lockScope(tx, scope);
@@ -56,23 +70,34 @@ export class ListsService {
       },
     });
     if (!list) throw new NotFoundException('List not found');
-    return { ...toListDto(list), entries: list.entries.map(toEntryDto) };
+    const { permissions } = await this.access.grant(user, scopeOf(list));
+    return {
+      ...toListDto(list),
+      entries: list.entries.map(toEntryDto),
+      permissions: [...permissions],
+    };
   }
 
   async update(user: AuthUser, id: string, input: UpdateListInput): Promise<ListDto> {
     const existing = await findAccessibleList(this.prisma, user, id, 'read');
+    await this.access.require(user, scopeOf(existing), 'list.update');
     const { isArchived, ...fields } = input;
     const list = await this.prisma.list.update({
       where: { id },
-      data: { ...fields, archivedAt: nextArchivedAt(existing.archivedAt, isArchived) },
+      data: {
+        ...fields,
+        archivedAt: nextArchivedAt(existing.archivedAt, isArchived),
+        lastActivityAt: new Date(),
+      },
       include: LIST_DTO_INCLUDE,
     });
     return toListDto(list);
   }
 
   async delete(user: AuthUser, id: string): Promise<void> {
-    await findAccessibleList(this.prisma, user, id, 'read');
-    await this.prisma.list.delete({ where: { id } });
+    const list = await findAccessibleList(this.prisma, user, id, 'read');
+    await this.access.require(user, scopeOf(list), 'list.delete');
+    await this.prisma.list.deleteMany({ where: { id } });
   }
 }
 

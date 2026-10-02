@@ -8,13 +8,15 @@ import {
   CATEGORIES_MAX_COUNT,
   type CategoryDto,
   type CreateCategoryInput,
+  type Permission,
   type ReorderCategoriesInput,
   type UpdateCategoryInput,
 } from '@shoppy/shared';
 import type { AuthUser } from '../../common/auth/auth-user.js';
 import { UserWriteBudget } from '../../common/rate-limit/user-write-budget.service.js';
 import { lockScope } from '../../common/scope/lock-scope.js';
-import { accessibleBy, type Scope, scopeWhere } from '../../common/scope/scope.js';
+import { accessibleBy, type Scope, scopeOf, scopeWhere } from '../../common/scope/scope.js';
+import { ScopeAccess } from '../../common/scope/scope-access.service.js';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service.js';
 import { rethrowUniqueViolation } from '../../infrastructure/prisma/rethrow-unique-violation.js';
 import { CATEGORY_DTO_INCLUDE, toCategoryDto } from './category-dto.js';
@@ -25,19 +27,17 @@ const NAME_TAKEN = 'A category with this name already exists';
 export class CategoriesService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly access: ScopeAccess,
     private readonly writeBudget: UserWriteBudget,
   ) {}
 
-  async list(scope: Scope): Promise<CategoryDto[]> {
-    const categories = await this.prisma.category.findMany({
-      where: scopeWhere(scope),
-      orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
-      include: CATEGORY_DTO_INCLUDE,
-    });
-    return categories.map(toCategoryDto);
+  async list(user: AuthUser, scope: Scope): Promise<CategoryDto[]> {
+    await this.access.grant(user, scope);
+    return this.listIn(scope);
   }
 
   async create(user: AuthUser, scope: Scope, input: CreateCategoryInput): Promise<CategoryDto> {
+    await this.access.require(user, scope, 'category.create');
     this.writeBudget.spend(user, 1);
     const category = await this.prisma.$transaction(async (tx) => {
       await lockScope(tx, scope);
@@ -60,7 +60,7 @@ export class CategoriesService {
   }
 
   async update(user: AuthUser, id: string, input: UpdateCategoryInput): Promise<CategoryDto> {
-    await this.findAccessible(user, id);
+    await this.findAllowed(user, id, 'category.update');
     const category = await this.prisma.category
       .update({ where: { id }, data: input, include: CATEGORY_DTO_INCLUDE })
       .catch(rethrowUniqueViolation(NAME_TAKEN));
@@ -69,11 +69,16 @@ export class CategoriesService {
 
   // FR-C4: items and one-time entries in the category become uncategorized (FK ON DELETE SET NULL).
   async delete(user: AuthUser, id: string): Promise<void> {
-    await this.findAccessible(user, id);
-    await this.prisma.category.delete({ where: { id } });
+    await this.findAllowed(user, id, 'category.delete');
+    await this.prisma.category.deleteMany({ where: { id } });
   }
 
-  async reorder(scope: Scope, input: ReorderCategoriesInput): Promise<CategoryDto[]> {
+  async reorder(
+    user: AuthUser,
+    scope: Scope,
+    input: ReorderCategoriesInput,
+  ): Promise<CategoryDto[]> {
+    await this.access.require(user, scope, 'category.update');
     await this.prisma.$transaction(async (tx) => {
       const existing = await tx.category.findMany({
         where: scopeWhere(scope),
@@ -93,12 +98,22 @@ export class CategoriesService {
         await tx.category.update({ where: { id }, data: { position } });
       }
     });
-    return this.list(scope);
+    return this.listIn(scope);
   }
 
-  private async findAccessible(user: AuthUser, id: string) {
+  private async listIn(scope: Scope): Promise<CategoryDto[]> {
+    const categories = await this.prisma.category.findMany({
+      where: scopeWhere(scope),
+      orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
+      include: CATEGORY_DTO_INCLUDE,
+    });
+    return categories.map(toCategoryDto);
+  }
+
+  private async findAllowed(user: AuthUser, id: string, permission: Permission) {
     const category = await this.prisma.category.findFirst({ where: { id, ...accessibleBy(user) } });
     if (!category) throw new NotFoundException('Category not found');
+    await this.access.require(user, scopeOf(category), permission);
     return category;
   }
 }

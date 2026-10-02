@@ -3,8 +3,11 @@ import type { BulkEntriesInput, BulkResultDto, PurchaseRecordDto } from '@shoppy
 import type { AuthUser } from '../../common/auth/auth-user.js';
 import { UserWriteBudget } from '../../common/rate-limit/user-write-budget.service.js';
 import { assertDeletedAll } from '../../infrastructure/prisma/assert-deleted-all.js';
+import { scopeOf } from '../../common/scope/scope.js';
+import { ScopeAccess } from '../../common/scope/scope-access.service.js';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service.js';
 import { findAccessibleList } from '../lists/find-accessible-list.js';
+import { touchList } from '../lists/touch-list.js';
 import {
   PURCHASE_RECORD_DTO_INCLUDE,
   toPurchaseRecordDto,
@@ -18,13 +21,15 @@ import { ENTRY_PURCHASE_INCLUDE, toPurchaseRecordData } from './purchase-record-
 export class EntryCheckoutService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly access: ScopeAccess,
     private readonly writeBudget: UserWriteBudget,
   ) {}
 
   async check(user: AuthUser, entryId: string): Promise<PurchaseRecordDto> {
-    this.writeBudget.spend(user, 1);
     return this.prisma.$transaction(async (tx) => {
-      await findAccessibleEntry(tx, user, entryId, 'write');
+      const { list } = await findAccessibleEntry(tx, user, entryId, 'write');
+      await this.access.require(user, scopeOf(list), 'entry.check', tx);
+      this.writeBudget.spend(user, 1);
       const entry = await tx.listEntry.findUniqueOrThrow({
         where: { id: entryId },
         include: ENTRY_PURCHASE_INCLUDE,
@@ -36,6 +41,7 @@ export class EntryCheckoutService {
       });
       const { count } = await tx.listEntry.deleteMany({ where: { id: entryId } });
       assertDeletedAll(count, 1);
+      await touchList(tx, list.id);
       return toPurchaseRecordDto(record);
     });
   }
@@ -43,7 +49,9 @@ export class EntryCheckoutService {
   // FR-L18: all or nothing.
   async bulk(user: AuthUser, listId: string, input: BulkEntriesInput): Promise<BulkResultDto> {
     return this.prisma.$transaction(async (tx) => {
-      await findAccessibleList(tx, user, listId, 'write');
+      const list = await findAccessibleList(tx, user, listId, 'write');
+      const permission = input.action === 'check' ? 'entry.check' : 'entry.remove';
+      await this.access.require(user, scopeOf(list), permission, tx);
       const entries = await tx.listEntry.findMany({
         where: { listId, ...(input.ids && { id: { in: input.ids } }) },
         include: ENTRY_PURCHASE_INCLUDE,
@@ -66,6 +74,7 @@ export class EntryCheckoutService {
         where: { id: { in: entries.map(({ id }) => id) } },
       });
       assertDeletedAll(count, entries.length);
+      await touchList(tx, listId);
       return { count };
     });
   }
@@ -73,7 +82,8 @@ export class EntryCheckoutService {
   // Shopping mode "Finish": each record keeps when and by whom its entry was checked.
   async finishShopping(user: AuthUser, listId: string): Promise<BulkResultDto> {
     return this.prisma.$transaction(async (tx) => {
-      await findAccessibleList(tx, user, listId, 'write');
+      const list = await findAccessibleList(tx, user, listId, 'write');
+      await this.access.require(user, scopeOf(list), 'entry.check', tx);
       const entries = await tx.listEntry.findMany({
         where: { listId, checkedAt: { not: null } },
         include: ENTRY_PURCHASE_INCLUDE,
@@ -93,6 +103,7 @@ export class EntryCheckoutService {
         where: { id: { in: entries.map(({ id }) => id) } },
       });
       assertDeletedAll(count, entries.length);
+      await touchList(tx, listId);
       return { count };
     });
   }

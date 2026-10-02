@@ -4,27 +4,38 @@ import type {
   BulkResultDto,
   EntryDto,
   HistoryToEntryInput,
+  Permission,
 } from '@shoppy/shared';
 import type { AuthUser } from '../../common/auth/auth-user.js';
 import { UserWriteBudget } from '../../common/rate-limit/user-write-budget.service.js';
 import { scopeOf } from '../../common/scope/scope.js';
 import { assertDeletedAll } from '../../infrastructure/prisma/assert-deleted-all.js';
 import { isUniqueViolation } from '../../infrastructure/prisma/is-unique-violation.js';
+import { ScopeAccess } from '../../common/scope/scope-access.service.js';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service.js';
 import { assertListHasRoom } from '../entries/assert-list-has-room.js';
 import { ENTRY_DTO_INCLUDE, toEntryDto } from '../entries/entry-dto.js';
 import { findExistingEntry } from '../entries/find-existing-entry.js';
 import { findAccessibleList } from '../lists/find-accessible-list.js';
+import { touchList } from '../lists/touch-list.js';
 import { entryFromRecord, loadCategoryIdsByName } from './entry-from-record.js';
 import { findAccessibleRecord } from './find-accessible-record.js';
 
 type Mode = 'restore' | 'readd';
+
+// From the approved matrix: restoring also needs entry.add, re-adding only history.restore.
+const BULK_PERMISSIONS: Record<BulkHistoryInput['action'], Permission[]> = {
+  restore: ['history.restore', 'entry.add'],
+  readd: ['history.restore'],
+  delete: ['history.delete'],
+};
 
 // Restore moves a record back onto the list (FR-L14); re-add copies it and keeps the record (FR-L15).
 @Injectable()
 export class HistoryRestoreService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly access: ScopeAccess,
     private readonly writeBudget: UserWriteBudget,
   ) {}
 
@@ -40,6 +51,7 @@ export class HistoryRestoreService {
   async bulk(user: AuthUser, listId: string, input: BulkHistoryInput): Promise<BulkResultDto> {
     return this.prisma.$transaction(async (tx) => {
       const list = await findAccessibleList(tx, user, listId, 'write');
+      await this.access.require(user, scopeOf(list), BULK_PERMISSIONS[input.action], tx);
       const records = await tx.purchaseRecord.findMany({
         where: { listId, id: { in: input.ids } },
         orderBy: [{ boughtAt: 'asc' }, { id: 'asc' }],
@@ -65,6 +77,7 @@ export class HistoryRestoreService {
         });
         assertDeletedAll(count, records.length);
       }
+      await touchList(tx, listId);
       return { count: records.length };
     });
   }
@@ -75,10 +88,11 @@ export class HistoryRestoreService {
     recordId: string,
     input: HistoryToEntryInput,
   ): Promise<EntryDto> {
-    this.writeBudget.spend(user, 1);
     try {
       return await this.prisma.$transaction(async (tx) => {
         const { record, list } = await findAccessibleRecord(tx, user, recordId, 'write');
+        await this.access.require(user, scopeOf(list), BULK_PERMISSIONS[mode], tx);
+        this.writeBudget.spend(user, 1);
         await assertListHasRoom(tx, list.id, 1);
         const categoryIds = await loadCategoryIdsByName(tx, scopeOf(list));
 
@@ -90,6 +104,7 @@ export class HistoryRestoreService {
           const { count } = await tx.purchaseRecord.deleteMany({ where: { id: recordId } });
           assertDeletedAll(count, 1);
         }
+        await touchList(tx, list.id);
         return toEntryDto(entry);
       });
     } catch (error) {

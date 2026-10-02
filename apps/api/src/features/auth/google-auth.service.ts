@@ -97,7 +97,7 @@ export class GoogleAuthService {
           identities: { create: { provider: 'GOOGLE', providerUserId: profile.googleUserId } },
         },
       });
-      await seedDefaultCategories(tx, user.id);
+      await seedDefaultCategories(tx, { kind: 'personal', userId: user.id });
       return user.id;
     });
   }
