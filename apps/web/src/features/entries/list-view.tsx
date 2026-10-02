@@ -1,6 +1,6 @@
 import type { EntryDto, ListDetailDto } from '@shoppy/shared';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { Ellipsis, ShoppingBasket, ShoppingCart } from 'lucide-react';
+import { Ellipsis, Eye, ShoppingBasket, ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
 import { BackLink } from '@/components/ui/back-link';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -10,13 +10,16 @@ import { useItems } from '@/features/catalog/use-items';
 import { useCategories } from '@/features/categories/use-categories';
 import { RecentHistorySection } from '@/features/history/recent-history-section';
 import { useRecentHistory } from '@/features/history/use-recent-history';
+import { scopeOfList } from '@/features/households/scope-key';
 import { useSaveList } from '@/features/lists/use-save-list';
+import { cn } from '@/lib/cn';
 import { ArchivedBanner } from './archived-banner';
 import { EntryGroups } from './entry-groups';
 import { EntrySheet } from './entry-sheet';
 import { groupEntries } from './group-entries';
-import { ListEntryRow, type ListEntryRowMode } from './list-entry-row';
+import { listAbilities } from './list-abilities';
 import { ListDialogs, type ListDialog } from './list-dialogs';
+import { ListEntryRow, type ListEntryRowMode } from './list-entry-row';
 import type { ListMenuAction } from './list-menu-sheet';
 import { QuickAddBar } from './quick-add-bar';
 import { SelectionBar } from './selection-bar';
@@ -30,9 +33,11 @@ interface ListViewProps {
 
 export function ListView({ list }: ListViewProps) {
   const navigate = useNavigate();
-  const categories = useCategories();
-  const items = useItems();
-  const recent = useRecentHistory(list.id);
+  const scope = scopeOfList(list.scope);
+  const abilities = listAbilities(list);
+  const categories = useCategories(scope);
+  const items = useItems(scope);
+  const recent = useRecentHistory(list.id, abilities.canViewHistory);
   const checkEntry = useCheckEntry(list.id);
   const bulk = useBulkEntries(list.id);
   const saveList = useSaveList(list);
@@ -42,6 +47,7 @@ export function ListView({ list }: ListViewProps) {
 
   const groups = groupEntries(list.entries, categories.data ?? []);
   const hasEntries = list.entries.length > 0;
+  const isViewOnly = !list.isArchived && !abilities.canAdd && !abilities.canCheck;
 
   const handleMenuAction = (action: ListMenuAction) => {
     setDialog(null);
@@ -68,22 +74,22 @@ export function ListView({ list }: ListViewProps) {
         onToggle: () => selection.toggle(entry.id),
       };
     }
-    if (list.isArchived) return { kind: 'read-only' };
     return {
       kind: 'plan',
-      onCheck: () => checkEntry.mutate(entry),
-      onOpen: () => setOpenEntry(entry),
+      onCheck: abilities.canCheck ? () => checkEntry.mutate(entry) : undefined,
+      onOpen: abilities.canEdit || abilities.canRemove ? () => setOpenEntry(entry) : undefined,
     };
   };
 
   return (
     <Page
       title={list.name}
+      width="wide"
       className="pb-44"
       leading={<BackLink to="/lists" label="Back to lists" />}
       actions={
         <>
-          {!list.isArchived && hasEntries && (
+          {abilities.canCheck && hasEntries && (
             <Link
               to="/lists/$listId/shop"
               params={{ listId: list.id }}
@@ -97,36 +103,61 @@ export function ListView({ list }: ListViewProps) {
         </>
       }
     >
-      {list.isArchived && (
-        <ArchivedBanner
-          isPending={saveList.isPending}
-          onUnarchive={() => saveList.mutate({ isArchived: false })}
-        />
+      {list.scope.kind === 'household' && (
+        <p className="-mt-4 text-sm text-muted-foreground">{list.scope.householdName}</p>
       )}
-      {hasEntries ? (
-        <EntryGroups
-          groups={groups}
-          renderEntry={(entry) => (
-            <ListEntryRow key={entry.id} entry={entry} mode={rowMode(entry)} />
+      <div
+        className={cn(
+          'flex flex-col gap-6',
+          abilities.canViewHistory &&
+            'lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start lg:gap-8',
+        )}
+      >
+        <div className="flex flex-col gap-6">
+          {list.isArchived && (
+            <ArchivedBanner
+              isPending={saveList.isPending}
+              onUnarchive={
+                abilities.canUpdateList ? () => saveList.mutate({ isArchived: false }) : undefined
+              }
+            />
           )}
-        />
-      ) : (
-        <EmptyState icon={ShoppingBasket} title="Nothing to buy">
-          {list.isArchived ? 'This list is empty.' : 'Add something below.'}
-        </EmptyState>
-      )}
-      <RecentHistorySection listId={list.id} isReadOnly={list.isArchived} />
+          {isViewOnly && (
+            <p className="flex items-center gap-2 rounded-2xl bg-muted px-4 py-3 text-sm">
+              <Eye className="size-4 text-muted-foreground" aria-hidden />
+              View only
+            </p>
+          )}
+          {hasEntries ? (
+            <EntryGroups
+              groups={groups}
+              renderEntry={(entry) => (
+                <ListEntryRow key={entry.id} entry={entry} mode={rowMode(entry)} />
+              )}
+            />
+          ) : (
+            <EmptyState icon={ShoppingBasket} title="Nothing to buy">
+              {abilities.canAdd ? 'Add something below.' : 'This list is empty.'}
+            </EmptyState>
+          )}
+        </div>
+        {abilities.canViewHistory && (
+          <aside className="lg:sticky lg:top-8">
+            <RecentHistorySection listId={list.id} scope={scope} abilities={abilities} />
+          </aside>
+        )}
+      </div>
 
       {selection.isSelecting ? (
         <SelectionBar
           count={selection.selectedIds.length}
-          primaryLabel="Check"
+          primaryLabel={abilities.canCheck ? 'Check' : undefined}
           onPrimary={() => bulkSelected('check')}
-          onDelete={() => bulkSelected('delete')}
+          onDelete={abilities.canRemove ? () => bulkSelected('delete') : undefined}
           onCancel={selection.stop}
         />
       ) : (
-        !list.isArchived && (
+        abilities.canAdd && (
           <QuickAddBar
             listId={list.id}
             items={items.data ?? []}
@@ -140,6 +171,7 @@ export function ListView({ list }: ListViewProps) {
         listId={list.id}
         entry={openEntry}
         categories={categories.data ?? []}
+        abilities={abilities}
         onClose={() => setOpenEntry(undefined)}
       />
       <ListDialogs

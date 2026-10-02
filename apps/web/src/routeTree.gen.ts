@@ -21,6 +21,8 @@ import { Route as GuestRegisterRouteImport } from './routes/_guest/register'
 import { Route as GuestSignInRouteImport } from './routes/_guest/sign-in'
 import { Route as AuthenticatedCatalogIndexRouteImport } from './routes/_authenticated/catalog/index'
 import { Route as AuthenticatedCatalogCategoriesRouteImport } from './routes/_authenticated/catalog/categories'
+import { Route as AuthenticatedHouseholdsHouseholdIdRouteImport } from './routes/_authenticated/households/$householdId'
+import { Route as AuthenticatedJoinTokenRouteImport } from './routes/_authenticated/join/$token'
 import { Route as AuthenticatedListsIndexRouteImport } from './routes/_authenticated/lists/index'
 import { Route as AuthenticatedListsListIdIndexRouteImport } from './routes/_authenticated/lists/$listId/index'
 import { Route as AuthenticatedListsListIdHistoryRouteImport } from './routes/_authenticated/lists/$listId/history'
@@ -86,6 +88,17 @@ const AuthenticatedCatalogCategoriesRoute =
     path: '/catalog/categories',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedHouseholdsHouseholdIdRoute =
+  AuthenticatedHouseholdsHouseholdIdRouteImport.update({
+    id: '/households/$householdId',
+    path: '/households/$householdId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedJoinTokenRoute = AuthenticatedJoinTokenRouteImport.update({
+  id: '/join/$token',
+  path: '/join/$token',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedListsIndexRoute = AuthenticatedListsIndexRouteImport.update({
   id: '/lists/',
   path: '/lists/',
@@ -120,6 +133,8 @@ export interface FileRoutesByFullPath {
   '/register': typeof GuestRegisterRoute
   '/sign-in': typeof GuestSignInRoute
   '/catalog/categories': typeof AuthenticatedCatalogCategoriesRoute
+  '/households/$householdId': typeof AuthenticatedHouseholdsHouseholdIdRoute
+  '/join/$token': typeof AuthenticatedJoinTokenRoute
   '/catalog/': typeof AuthenticatedCatalogIndexRoute
   '/lists/': typeof AuthenticatedListsIndexRoute
   '/lists/$listId/history': typeof AuthenticatedListsListIdHistoryRoute
@@ -136,6 +151,8 @@ export interface FileRoutesByTo {
   '/register': typeof GuestRegisterRoute
   '/sign-in': typeof GuestSignInRoute
   '/catalog/categories': typeof AuthenticatedCatalogCategoriesRoute
+  '/households/$householdId': typeof AuthenticatedHouseholdsHouseholdIdRoute
+  '/join/$token': typeof AuthenticatedJoinTokenRoute
   '/catalog': typeof AuthenticatedCatalogIndexRoute
   '/lists': typeof AuthenticatedListsIndexRoute
   '/lists/$listId/history': typeof AuthenticatedListsListIdHistoryRoute
@@ -155,6 +172,8 @@ export interface FileRoutesById {
   '/_guest/sign-in': typeof GuestSignInRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/catalog/categories': typeof AuthenticatedCatalogCategoriesRoute
+  '/_authenticated/households/$householdId': typeof AuthenticatedHouseholdsHouseholdIdRoute
+  '/_authenticated/join/$token': typeof AuthenticatedJoinTokenRoute
   '/_authenticated/catalog/': typeof AuthenticatedCatalogIndexRoute
   '/_authenticated/lists/': typeof AuthenticatedListsIndexRoute
   '/_authenticated/lists/$listId/history': typeof AuthenticatedListsListIdHistoryRoute
@@ -173,6 +192,8 @@ export interface FileRouteTypes {
     | '/register'
     | '/sign-in'
     | '/catalog/categories'
+    | '/households/$householdId'
+    | '/join/$token'
     | '/catalog/'
     | '/lists/'
     | '/lists/$listId/history'
@@ -189,6 +210,8 @@ export interface FileRouteTypes {
     | '/register'
     | '/sign-in'
     | '/catalog/categories'
+    | '/households/$householdId'
+    | '/join/$token'
     | '/catalog'
     | '/lists'
     | '/lists/$listId/history'
@@ -207,6 +230,8 @@ export interface FileRouteTypes {
     | '/_guest/sign-in'
     | '/_authenticated/'
     | '/_authenticated/catalog/categories'
+    | '/_authenticated/households/$householdId'
+    | '/_authenticated/join/$token'
     | '/_authenticated/catalog/'
     | '/_authenticated/lists/'
     | '/_authenticated/lists/$listId/history'
@@ -308,6 +333,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCatalogCategoriesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/households/$householdId': {
+      id: '/_authenticated/households/$householdId'
+      path: '/households/$householdId'
+      fullPath: '/households/$householdId'
+      preLoaderRoute: typeof AuthenticatedHouseholdsHouseholdIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/join/$token': {
+      id: '/_authenticated/join/$token'
+      path: '/join/$token'
+      fullPath: '/join/$token'
+      preLoaderRoute: typeof AuthenticatedJoinTokenRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/lists/': {
       id: '/_authenticated/lists/'
       path: '/lists'
@@ -343,6 +382,8 @@ interface AuthenticatedRouteChildren {
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedCatalogCategoriesRoute: typeof AuthenticatedCatalogCategoriesRoute
+  AuthenticatedHouseholdsHouseholdIdRoute: typeof AuthenticatedHouseholdsHouseholdIdRoute
+  AuthenticatedJoinTokenRoute: typeof AuthenticatedJoinTokenRoute
   AuthenticatedCatalogIndexRoute: typeof AuthenticatedCatalogIndexRoute
   AuthenticatedListsIndexRoute: typeof AuthenticatedListsIndexRoute
   AuthenticatedListsListIdHistoryRoute: typeof AuthenticatedListsListIdHistoryRoute
@@ -354,6 +395,9 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedCatalogCategoriesRoute: AuthenticatedCatalogCategoriesRoute,
+  AuthenticatedHouseholdsHouseholdIdRoute:
+    AuthenticatedHouseholdsHouseholdIdRoute,
+  AuthenticatedJoinTokenRoute: AuthenticatedJoinTokenRoute,
   AuthenticatedCatalogIndexRoute: AuthenticatedCatalogIndexRoute,
   AuthenticatedListsIndexRoute: AuthenticatedListsIndexRoute,
   AuthenticatedListsListIdHistoryRoute: AuthenticatedListsListIdHistoryRoute,

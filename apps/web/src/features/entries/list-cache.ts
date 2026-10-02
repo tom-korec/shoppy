@@ -1,6 +1,6 @@
 import type { EntryDto, ListDetailDto } from '@shoppy/shared';
 import type { QueryClient } from '@tanstack/react-query';
-import { listDetailKey } from '@/features/lists/list-query-keys';
+import { LISTS_QUERY_KEY, listDetailKey } from '@/features/lists/list-query-keys';
 
 export const entryMutationKey = (listId: string) => ['entries', listId];
 
@@ -41,15 +41,19 @@ export function rollbackEntries(
   if (snapshot?.previous) queryClient.setQueryData(listDetailKey(listId), snapshot.previous);
 }
 
-// Refetch only once the last pending change of the list has settled; refetching earlier would
-// briefly drop optimistic entries that are still on their way to the server.
 // Entries are listed in id order (UUIDv7), so an undone check or delete returns to its place.
 export function insertById(entries: EntryDto[], entry: EntryDto): EntryDto[] {
   const index = entries.findIndex(({ id }) => id > entry.id);
   return index === -1 ? [...entries, entry] : entries.toSpliced(index, 0, entry);
 }
 
+// Refetch only once the last pending change of the list has settled; refetching earlier would
+// briefly drop optimistic entries that are still on their way to the server. The Lists screen
+// refreshes too (entry counts, last activity).
 export async function settleList(queryClient: QueryClient, listId: string): Promise<void> {
   if (queryClient.isMutating({ mutationKey: entryMutationKey(listId) }) > 1) return;
-  await queryClient.invalidateQueries({ queryKey: listDetailKey(listId) });
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: listDetailKey(listId) }),
+    queryClient.invalidateQueries({ queryKey: LISTS_QUERY_KEY, exact: true }),
+  ]);
 }

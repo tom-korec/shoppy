@@ -1,10 +1,11 @@
-import type {
-  CategoryDto,
-  EntryDto,
-  ItemDto,
-  ListDetailDto,
-  PurchaseRecordDto,
-  RecentHistoryDto,
+import {
+  type CategoryDto,
+  type EntryDto,
+  type ItemDto,
+  type ListDetailDto,
+  PERMISSIONS,
+  type PurchaseRecordDto,
+  type RecentHistoryDto,
 } from '@shoppy/shared';
 
 export const LIST_ID = '01999d6c-6c4a-7c39-9a3f-000000000001';
@@ -55,8 +56,11 @@ export function buildList(
     icon: 'shopping-cart',
     isArchived: false,
     entryCount: entries.length,
+    scope: { kind: 'personal' },
     createdAt: '2026-10-01T12:00:00.000Z',
+    lastActivityAt: '2026-10-01T12:00:00.000Z',
     entries,
+    permissions: [...PERMISSIONS],
     ...overrides,
   };
 }

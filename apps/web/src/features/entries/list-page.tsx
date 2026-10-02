@@ -13,7 +13,7 @@ export function ListPage() {
 
   if (list.isSuccess) return <ListView list={list.data} />;
   return (
-    <Page title="List" leading={<BackLink to="/lists" label="Back to lists" />}>
+    <Page title="List" width="wide" leading={<BackLink to="/lists" label="Back to lists" />}>
       <QueryState query={list}>{() => null}</QueryState>
     </Page>
   );

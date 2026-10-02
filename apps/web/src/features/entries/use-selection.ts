@@ -21,3 +21,5 @@ export function useSelection() {
     toggle,
   };
 }
+
+export type Selection = ReturnType<typeof useSelection>;

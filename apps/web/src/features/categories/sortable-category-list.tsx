@@ -23,11 +23,17 @@ import { SortableCategoryRow } from './sortable-category-row';
 
 interface SortableCategoryListProps {
   categories: CategoryDto[];
+  isReorderable: boolean;
   onReorder: (ordered: CategoryDto[]) => void;
-  onOpen: (category: CategoryDto) => void;
+  onOpen?: (category: CategoryDto) => void;
 }
 
-export function SortableCategoryList({ categories, onReorder, onOpen }: SortableCategoryListProps) {
+export function SortableCategoryList({
+  categories,
+  isReorderable,
+  onReorder,
+  onOpen,
+}: SortableCategoryListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 5 } }),
@@ -60,7 +66,8 @@ export function SortableCategoryList({ categories, onReorder, onOpen }: Sortable
             <SortableCategoryRow
               key={category.id}
               category={category}
-              onOpen={() => onOpen(category)}
+              isReorderable={isReorderable}
+              onOpen={onOpen && (() => onOpen(category))}
             />
           ))}
         </ul>

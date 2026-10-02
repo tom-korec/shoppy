@@ -1,5 +1,5 @@
 import { PASSWORD_MIN_LENGTH, type RegisterInput, registerInputSchema } from '@shoppy/shared';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { getRouteApi, Link, useNavigate } from '@tanstack/react-router';
 import { AuthLayout } from '@/components/layout/auth-layout';
 import { Button } from '@/components/ui/button';
 import { FormAlert } from '@/components/ui/form-alert';
@@ -7,16 +7,23 @@ import { TextField } from '@/components/ui/text-field';
 import { errorMessage } from '@/lib/form-errors';
 import { useZodForm } from '@/components/ui/use-zod-form';
 import { GoogleSignInSection } from './google-sign-in-section';
+import { safeRedirectPath } from './route-guards';
 import { useSessionMutation } from './use-session-mutation';
 
+const route = getRouteApi('/_guest/register');
+
+// A redirect (e.g. an invitation link) is kept through registration and email confirmation.
 export function RegisterPage() {
   const navigate = useNavigate();
+  const { redirect } = route.useSearch();
   const register = useSessionMutation<RegisterInput>('/auth/register');
   const form = useZodForm(
     registerInputSchema,
     { displayName: '', email: '', password: '' },
     (input) =>
-      register.mutate(input, { onSuccess: () => void navigate({ to: '/verify-pending' }) }),
+      register.mutate(input, {
+        onSuccess: () => void navigate({ to: '/verify-pending', search: { redirect } }),
+      }),
   );
 
   return (
@@ -41,10 +48,10 @@ export function RegisterPage() {
           Create account
         </Button>
       </form>
-      <GoogleSignInSection redirectTo="/" />
+      <GoogleSignInSection redirectTo={safeRedirectPath(redirect)} />
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{' '}
-        <Link to="/sign-in" search={{}} className="font-medium text-primary">
+        <Link to="/sign-in" search={{ redirect }} className="font-medium text-primary">
           Sign in
         </Link>
       </p>

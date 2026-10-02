@@ -10,7 +10,12 @@ export async function requireVerifiedUser(auth: AuthStore, currentHref: string):
       search: currentHref === '/' ? {} : { redirect: currentHref },
     });
   }
-  if (!user.isEmailVerified) throw redirect({ to: '/verify-pending' });
+  if (!user.isEmailVerified) {
+    throw redirect({
+      to: '/verify-pending',
+      search: currentHref === '/' ? {} : { redirect: currentHref },
+    });
+  }
 }
 
 export async function requireUnverifiedUser(auth: AuthStore): Promise<void> {

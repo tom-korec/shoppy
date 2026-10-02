@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 interface HistoryRecordRowProps {
   record: PurchaseRecordDto;
+  isShared: boolean;
   control?: ReactNode;
   onOpen?: () => void;
 }
@@ -14,10 +15,12 @@ const dateFormatter = new Intl.DateTimeFormat('en', {
   minute: '2-digit',
 });
 
-export function HistoryRecordRow({ record, control, onOpen }: HistoryRecordRowProps) {
+// In a household, the record also says who bought it.
+export function HistoryRecordRow({ record, isShared, control, onOpen }: HistoryRecordRowProps) {
   const details = [
     record.note,
     record.categoryName,
+    isShared && record.boughtBy?.displayName,
     dateFormatter.format(new Date(record.boughtAt)),
   ]
     .filter(Boolean)

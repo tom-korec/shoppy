@@ -1,23 +1,27 @@
-import { Navigate } from '@tanstack/react-router';
+import { getRouteApi, Navigate } from '@tanstack/react-router';
 import { MailCheck } from 'lucide-react';
 import { AuthLayout } from '@/components/layout/auth-layout';
 import { Button } from '@/components/ui/button';
 import { FormAlert } from '@/components/ui/form-alert';
 import { errorMessage } from '@/lib/form-errors';
+import { safeRedirectPath } from './route-guards';
 import { useAuth } from './use-auth';
 import { useRefreshCurrentUser } from './use-refresh-current-user';
 import { useResendVerification } from './use-resend-verification';
 import { useSignOut } from './use-sign-out';
 
+const route = getRouteApi('/verify-pending');
+
 export function VerifyPendingPage() {
   const auth = useAuth();
+  const { redirect } = route.useSearch();
   const currentUser = useRefreshCurrentUser();
   const resend = useResendVerification();
   const signOut = useSignOut();
 
   if (auth.status === 'signed-out') return <Navigate to="/sign-in" search={{}} />;
   if (auth.status !== 'signed-in') return null;
-  if (auth.user.isEmailVerified) return <Navigate to="/" />;
+  if (auth.user.isEmailVerified) return <Navigate to={safeRedirectPath(redirect)} />;
 
   return (
     <AuthLayout

@@ -4,7 +4,7 @@ import { ApiError } from './api-error';
 import { authStore } from './auth-store';
 import { refreshSession } from './refresh-session';
 
-type Method = 'GET' | 'POST' | 'PATCH' | 'DELETE';
+type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 interface RequestOptions {
   method: Method;

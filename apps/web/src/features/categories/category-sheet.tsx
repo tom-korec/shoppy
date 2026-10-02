@@ -4,16 +4,27 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ConfirmSheet } from '@/components/ui/confirm-sheet';
 import { Sheet } from '@/components/ui/sheet';
+import type { ScopeKey } from '@/features/households/scope-key';
 import { CategoryForm } from './category-form';
 import { useDeleteCategory } from './use-delete-category';
 
 interface CategorySheetProps {
   isOpen: boolean;
+  scope: ScopeKey;
   category?: CategoryDto;
+  canUpdate: boolean;
+  canDelete: boolean;
   onClose: () => void;
 }
 
-export function CategorySheet({ isOpen, category, onClose }: CategorySheetProps) {
+export function CategorySheet({
+  isOpen,
+  scope,
+  category,
+  canUpdate,
+  canDelete,
+  onClose,
+}: CategorySheetProps) {
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const deleteCategory = useDeleteCategory();
 
@@ -34,8 +45,10 @@ export function CategorySheet({ isOpen, category, onClose }: CategorySheetProps)
         onClose={onClose}
         title={category ? 'Edit category' : 'New category'}
       >
-        <CategoryForm category={category} onSaved={onClose} />
-        {category && (
+        {(!category || canUpdate) && (
+          <CategoryForm scope={scope} category={category} onSaved={onClose} />
+        )}
+        {category && canDelete && (
           <Button variant="danger" width="full" onClick={() => setIsConfirmingDelete(true)}>
             <Trash2 className="size-4" aria-hidden />
             Delete category

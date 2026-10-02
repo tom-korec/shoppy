@@ -7,7 +7,7 @@ export function Toaster() {
   return (
     <output
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 bottom-[calc(8.5rem+env(safe-area-inset-bottom))] z-50 flex justify-center px-4"
+      className="pointer-events-none fixed inset-x-0 bottom-[calc(8.5rem+env(safe-area-inset-bottom))] z-50 flex justify-center px-4 lg:bottom-24 lg:left-60"
     >
       {toast && (
         <div className="pointer-events-auto flex max-w-md min-w-0 flex-1 items-center gap-3 rounded-2xl bg-foreground py-2 pr-2 pl-4 text-background shadow-lg">

@@ -4,6 +4,8 @@ import { ChevronDown, Plus, RotateCcw } from 'lucide-react';
 import { IconButton } from '@/components/ui/icon-button';
 import { useItems } from '@/features/catalog/use-items';
 import { useCategories } from '@/features/categories/use-categories';
+import type { ListAbilities } from '@/features/entries/list-abilities';
+import type { ScopeKey } from '@/features/households/scope-key';
 import { formatRelativeTime } from '@/lib/format-relative-time';
 import { entryFromRecord } from './entry-from-record';
 import { useReaddRecord } from './use-readd-record';
@@ -12,14 +14,15 @@ import { useRestoreRecord } from './use-restore-record';
 
 interface RecentHistorySectionProps {
   listId: string;
-  isReadOnly: boolean;
+  scope: ScopeKey;
+  abilities: Pick<ListAbilities, 'canViewHistory' | 'canRestore' | 'canReadd'>;
 }
 
 // FR-L12: collapsed below the list; the window is 7 or 30 days depending on how busy the list is.
-export function RecentHistorySection({ listId, isReadOnly }: RecentHistorySectionProps) {
-  const recent = useRecentHistory(listId);
-  const items = useItems();
-  const categories = useCategories();
+export function RecentHistorySection({ listId, scope, abilities }: RecentHistorySectionProps) {
+  const recent = useRecentHistory(listId, abilities.canViewHistory);
+  const items = useItems(scope);
+  const categories = useCategories(scope);
   const restore = useRestoreRecord(listId);
   const readd = useReaddRecord(listId);
   const records = recent.data?.records ?? [];
@@ -28,6 +31,8 @@ export function RecentHistorySection({ listId, isReadOnly }: RecentHistorySectio
     record,
     optimistic: entryFromRecord(record, items.data ?? [], categories.data ?? []),
   });
+
+  if (!abilities.canViewHistory) return null;
 
   return (
     <section className="flex flex-col gap-2">
@@ -46,22 +51,28 @@ export function RecentHistorySection({ listId, isReadOnly }: RecentHistorySectio
                 <div className="flex min-h-12 min-w-0 flex-1 flex-col justify-center py-1">
                   <span className="truncate">{record.name}</span>
                   <span className="truncate text-sm text-muted-foreground">
-                    {[record.note, formatRelativeTime(record.boughtAt)].filter(Boolean).join(' · ')}
+                    {[
+                      record.note,
+                      scope.kind === 'household' && record.boughtBy?.displayName,
+                      formatRelativeTime(record.boughtAt),
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
                   </span>
                 </div>
-                {!isReadOnly && (
-                  <>
-                    <IconButton
-                      icon={RotateCcw}
-                      label={`Put ${record.name} back on the list`}
-                      onClick={() => restore.mutate(toEntry(record))}
-                    />
-                    <IconButton
-                      icon={Plus}
-                      label={`Add ${record.name} again`}
-                      onClick={() => readd.mutate(toEntry(record))}
-                    />
-                  </>
+                {abilities.canRestore && (
+                  <IconButton
+                    icon={RotateCcw}
+                    label={`Put ${record.name} back on the list`}
+                    onClick={() => restore.mutate(toEntry(record))}
+                  />
+                )}
+                {abilities.canReadd && (
+                  <IconButton
+                    icon={Plus}
+                    label={`Add ${record.name} again`}
+                    onClick={() => readd.mutate(toEntry(record))}
+                  />
                 )}
               </li>
             ))}

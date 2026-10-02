@@ -6,6 +6,7 @@ import { SelectField } from '@/components/ui/select-field';
 import { TextField } from '@/components/ui/text-field';
 import { useZodForm } from '@/components/ui/use-zod-form';
 import { useCategories } from '@/features/categories/use-categories';
+import type { ScopeKey } from '@/features/households/scope-key';
 import { useSaveItem } from './use-save-item';
 
 // The category select sends '' for "no category".
@@ -14,14 +15,15 @@ const itemFormSchema = createItemInputSchema.extend({
 });
 
 interface ItemFormProps {
+  scope: ScopeKey;
   item?: ItemDto;
   initialCategoryId?: string;
   onSaved: () => void;
 }
 
-export function ItemForm({ item, initialCategoryId, onSaved }: ItemFormProps) {
-  const save = useSaveItem(item);
-  const categories = useCategories();
+export function ItemForm({ scope, item, initialCategoryId, onSaved }: ItemFormProps) {
+  const save = useSaveItem(scope, item);
+  const categories = useCategories(scope);
   const form = useZodForm(
     itemFormSchema,
     {

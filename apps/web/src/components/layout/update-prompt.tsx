@@ -20,7 +20,7 @@ export function UpdatePrompt() {
   return (
     <div
       role="alert"
-      className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-50 flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-lg"
+      className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-50 flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-lg lg:bottom-6 lg:left-auto lg:right-6 lg:w-96"
     >
       <p className="flex-1 text-sm">A new version of Shoppy is available.</p>
       <button

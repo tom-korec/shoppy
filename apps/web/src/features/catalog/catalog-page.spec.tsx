@@ -15,6 +15,7 @@ describe('CatalogPage', () => {
 
   it('searches the catalog', async () => {
     stubApi({
+      'GET /api/households': () => Response.json([]),
       'GET /api/scopes/personal/categories': () => Response.json([buildCategory()]),
       'GET /api/scopes/personal/items': () =>
         Response.json([
@@ -37,12 +38,13 @@ describe('CatalogPage', () => {
 
   it('shows an empty catalog', async () => {
     stubApi({
+      'GET /api/households': () => Response.json([]),
       'GET /api/scopes/personal/categories': () => Response.json([]),
       'GET /api/scopes/personal/items': () => Response.json([]),
     });
 
     renderApp('/catalog');
 
-    expect(await screen.findByText('Your catalog is empty')).toBeInTheDocument();
+    expect(await screen.findByText('This catalog is empty')).toBeInTheDocument();
   });
 });

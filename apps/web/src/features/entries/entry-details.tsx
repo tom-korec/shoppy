@@ -4,6 +4,7 @@ import { type FormEvent, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { SelectField } from '@/components/ui/select-field';
 import { TextField } from '@/components/ui/text-field';
+import type { ListAbilities } from './list-abilities';
 import { useDeleteEntry } from './use-delete-entry';
 import { usePromoteEntry } from './use-promote-entry';
 import { useUpdateEntry } from './use-update-entry';
@@ -12,10 +13,11 @@ interface EntryDetailsProps {
   listId: string;
   entry: EntryDto;
   categories: CategoryDto[];
+  abilities: Pick<ListAbilities, 'canEdit' | 'canPromote' | 'canRemove'>;
   onClose: () => void;
 }
 
-export function EntryDetails({ listId, entry, categories, onClose }: EntryDetailsProps) {
+export function EntryDetails({ listId, entry, categories, abilities, onClose }: EntryDetailsProps) {
   const [note, setNote] = useState(entry.note ?? '');
   const [categoryId, setCategoryId] = useState(entry.categoryId ?? '');
   const updateEntry = useUpdateEntry(listId);
@@ -48,15 +50,19 @@ export function EntryDetails({ listId, entry, categories, onClose }: EntryDetail
 
   return (
     <form onSubmit={save} className="flex flex-col gap-4">
-      <TextField
-        label="Note"
-        hint="Quantity or anything else, e.g. 2 l, organic"
-        autoComplete="off"
-        maxLength={ENTRY_NOTE_MAX_LENGTH}
-        value={note}
-        onChange={(event) => setNote(event.target.value)}
-      />
-      {isOneTime ? (
+      {abilities.canEdit ? (
+        <TextField
+          label="Note"
+          hint="Quantity or anything else, e.g. 2 l, organic"
+          autoComplete="off"
+          maxLength={ENTRY_NOTE_MAX_LENGTH}
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+        />
+      ) : (
+        entry.note && <p>{entry.note}</p>
+      )}
+      {isOneTime && abilities.canEdit ? (
         <SelectField
           label="Category"
           hint="One-time entry: not in the catalog."
@@ -72,14 +78,16 @@ export function EntryDetails({ listId, entry, categories, onClose }: EntryDetail
         </SelectField>
       ) : (
         <p className="text-sm text-muted-foreground">
-          From the catalog{categoryName ? ` · ${categoryName}` : ''}. Change its name or category in
-          the catalog.
+          {isOneTime ? 'One-time entry' : 'From the catalog'}
+          {categoryName ? ` · ${categoryName}` : ''}
         </p>
       )}
-      <Button type="submit" width="full">
-        Save
-      </Button>
-      {isOneTime && (
+      {abilities.canEdit && (
+        <Button type="submit" width="full">
+          Save
+        </Button>
+      )}
+      {isOneTime && abilities.canPromote && (
         <Button
           variant="secondary"
           width="full"
@@ -91,17 +99,19 @@ export function EntryDetails({ listId, entry, categories, onClose }: EntryDetail
         </Button>
       )}
       {promoteEntry.error && <p className="text-sm text-danger">{promoteEntry.error.message}</p>}
-      <Button
-        variant="danger"
-        width="full"
-        onClick={() => {
-          deleteEntry.mutate(entry);
-          onClose();
-        }}
-      >
-        <Trash2 className="size-4" aria-hidden />
-        Delete
-      </Button>
+      {abilities.canRemove && (
+        <Button
+          variant="danger"
+          width="full"
+          onClick={() => {
+            deleteEntry.mutate(entry);
+            onClose();
+          }}
+        >
+          <Trash2 className="size-4" aria-hidden />
+          Delete
+        </Button>
+      )}
     </form>
   );
 }

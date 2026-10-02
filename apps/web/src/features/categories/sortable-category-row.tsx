@@ -7,10 +7,11 @@ import { cn } from '@/lib/cn';
 
 interface SortableCategoryRowProps {
   category: CategoryDto;
-  onOpen: () => void;
+  isReorderable: boolean;
+  onOpen?: () => void;
 }
 
-export function SortableCategoryRow({ category, onOpen }: SortableCategoryRowProps) {
+export function SortableCategoryRow({ category, isReorderable, onOpen }: SortableCategoryRowProps) {
   const {
     attributes,
     listeners,
@@ -19,7 +20,7 @@ export function SortableCategoryRow({ category, onOpen }: SortableCategoryRowPro
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: category.id });
+  } = useSortable({ id: category.id, disabled: !isReorderable });
 
   return (
     <li
@@ -33,7 +34,8 @@ export function SortableCategoryRow({ category, onOpen }: SortableCategoryRowPro
       <button
         type="button"
         onClick={onOpen}
-        className="flex min-h-14 min-w-0 flex-1 items-center gap-3 pl-4 text-left"
+        disabled={!onOpen}
+        className="flex min-h-14 min-w-0 flex-1 items-center gap-3 pl-4 pr-3 text-left"
       >
         <AppIcon name={category.icon} className="text-muted-foreground" />
         <span className="min-w-0 flex-1 truncate font-medium">{category.name}</span>
@@ -41,16 +43,18 @@ export function SortableCategoryRow({ category, onOpen }: SortableCategoryRowPro
           {category.itemCount} {category.itemCount === 1 ? 'item' : 'items'}
         </span>
       </button>
-      <button
-        type="button"
-        ref={setActivatorNodeRef}
-        aria-label={`Reorder ${category.name}`}
-        className="flex size-11 touch-none items-center justify-center text-muted-foreground"
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="size-5" aria-hidden />
-      </button>
+      {isReorderable && (
+        <button
+          type="button"
+          ref={setActivatorNodeRef}
+          aria-label={`Reorder ${category.name}`}
+          className="flex size-11 touch-none items-center justify-center text-muted-foreground"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="size-5" aria-hidden />
+        </button>
+      )}
     </li>
   );
 }

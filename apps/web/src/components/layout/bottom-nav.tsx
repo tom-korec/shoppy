@@ -1,27 +1,14 @@
 import { Link } from '@tanstack/react-router';
-import { CircleUser, House, ListChecks, type LucideIcon, Package } from 'lucide-react';
-
-interface NavItem {
-  to: '/' | '/lists' | '/catalog' | '/profile';
-  label: string;
-  icon: LucideIcon;
-}
-
-const ITEMS: NavItem[] = [
-  { to: '/', label: 'Home', icon: House },
-  { to: '/lists', label: 'Lists', icon: ListChecks },
-  { to: '/catalog', label: 'Catalog', icon: Package },
-  { to: '/profile', label: 'Profile', icon: CircleUser },
-];
+import { NAV_ITEMS } from './nav-items';
 
 export function BottomNav() {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
     >
       <ul className="mx-auto flex max-w-lg">
-        {ITEMS.map(({ to, label, icon: Icon }) => (
+        {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
           <li key={to} className="flex-1">
             <Link
               to={to}

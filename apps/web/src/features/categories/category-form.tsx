@@ -8,15 +8,17 @@ import { FormAlert } from '@/components/ui/form-alert';
 import { IconPicker } from '@/components/ui/icon-picker';
 import { TextField } from '@/components/ui/text-field';
 import { useZodForm } from '@/components/ui/use-zod-form';
+import type { ScopeKey } from '@/features/households/scope-key';
 import { useSaveCategory } from './use-save-category';
 
 interface CategoryFormProps {
+  scope: ScopeKey;
   category?: CategoryDto;
   onSaved: () => void;
 }
 
-export function CategoryForm({ category, onSaved }: CategoryFormProps) {
-  const save = useSaveCategory(category);
+export function CategoryForm({ scope, category, onSaved }: CategoryFormProps) {
+  const save = useSaveCategory(scope, category);
   const form = useZodForm(
     createCategoryInputSchema,
     { name: category?.name ?? '', icon: category?.icon ?? 'shopping-basket' },

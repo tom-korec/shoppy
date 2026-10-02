@@ -5,8 +5,19 @@ import { authStore } from '@/lib/auth-store';
 import { buildUser, renderApp, stubApi } from '@/test/render-app';
 import { buildList, LIST_ID, NO_RECENT_HISTORY } from '@/test/shopping-fixtures';
 
+const LIST_SCREEN_ROUTES = {
+  'GET /api/me/list-view': () =>
+    Response.json({ isGrouped: true, sort: 'ACTIVITY', customOrder: [] }),
+  'GET /api/invitations/pending': () => Response.json([]),
+  'GET /api/households': () => Response.json([]),
+};
+
+function stubLists(lists: ListDto[]) {
+  return stubApi({ ...LIST_SCREEN_ROUTES, 'GET /api/lists': () => Response.json(lists) });
+}
+
 function list(overrides: Partial<ListDto>): ListDto {
-  const { entries: _entries, ...summary } = buildList();
+  const { entries: _entries, permissions: _permissions, ...summary } = buildList();
   return { ...summary, ...overrides };
 }
 
@@ -20,7 +31,7 @@ describe('ListsPage', () => {
   });
 
   it('shows the empty state', async () => {
-    stubApi({ 'GET /api/scopes/personal/lists': () => Response.json([]) });
+    stubLists([]);
 
     renderApp('/lists');
 
@@ -28,13 +39,10 @@ describe('ListsPage', () => {
   });
 
   it('keeps archived lists in a separate section', async () => {
-    stubApi({
-      'GET /api/scopes/personal/lists': () =>
-        Response.json([
-          list({ name: 'Weekly shop', entryCount: 3 }),
-          list({ id: '01999d6c-6c4a-7c39-9a3f-000000000040', name: 'Party', isArchived: true }),
-        ]),
-    });
+    stubLists([
+      list({ name: 'Weekly shop', entryCount: 3 }),
+      list({ id: '01999d6c-6c4a-7c39-9a3f-000000000040', name: 'Party', isArchived: true }),
+    ]);
 
     renderApp('/lists');
 
@@ -45,7 +53,8 @@ describe('ListsPage', () => {
   it('creates a list and opens it', async () => {
     const created = list({ name: 'Hardware', icon: 'wrench' });
     const fetchMock = stubApi({
-      'GET /api/scopes/personal/lists': () => Response.json([]),
+      ...LIST_SCREEN_ROUTES,
+      'GET /api/lists': () => Response.json([]),
       'POST /api/scopes/personal/lists': () => Response.json(created, { status: 201 }),
       [`GET /api/lists/${LIST_ID}`]: () => Response.json(buildList([], { name: 'Hardware' })),
       [`GET /api/lists/${LIST_ID}/history/recent`]: () => Response.json(NO_RECENT_HISTORY),

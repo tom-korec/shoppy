@@ -1,32 +1,33 @@
 import { type CategoryDto, categoryListSchema } from '@shoppy/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiSend } from '@/lib/api';
-import { CATEGORIES_QUERY_KEY } from './use-categories';
+import { type ScopeKey, scopeId, scopePath } from '@/features/households/scope-key';
+import { categoriesKey } from './use-categories';
 
-export function useReorderCategories() {
+export function useReorderCategories(scope: ScopeKey) {
   const queryClient = useQueryClient();
   return useMutation({
     // One reorder at a time: a late answer to an older drag must not win.
-    scope: { id: 'categories:reorder' },
+    scope: { id: `categories:reorder:${scopeId(scope)}` },
     mutationFn: (ordered: CategoryDto[]) =>
       apiSend(
         'POST',
-        '/scopes/personal/categories/reorder',
+        `${scopePath(scope)}/categories/reorder`,
         { ids: ordered.map(({ id }) => id) },
         categoryListSchema,
       ),
     onMutate: async (ordered) => {
-      await queryClient.cancelQueries({ queryKey: CATEGORIES_QUERY_KEY });
-      const previous = queryClient.getQueryData<CategoryDto[]>(CATEGORIES_QUERY_KEY);
+      await queryClient.cancelQueries({ queryKey: categoriesKey(scope) });
+      const previous = queryClient.getQueryData<CategoryDto[]>(categoriesKey(scope));
       queryClient.setQueryData(
-        CATEGORIES_QUERY_KEY,
+        categoriesKey(scope),
         ordered.map((category, position) => ({ ...category, position })),
       );
       return { previous };
     },
     onError: (_error, _ordered, context) => {
-      queryClient.setQueryData(CATEGORIES_QUERY_KEY, context?.previous);
+      queryClient.setQueryData(categoriesKey(scope), context?.previous);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: CATEGORIES_QUERY_KEY }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: categoriesKey(scope) }),
   });
 }

@@ -41,7 +41,11 @@ export function SignInPage() {
       <GoogleSignInSection redirectTo={redirectTo} />
       <p className="text-center text-sm text-muted-foreground">
         New to Shoppy?{' '}
-        <Link to="/register" className="font-medium text-primary">
+        <Link
+          to="/register"
+          search={{ redirect: route.useSearch().redirect }}
+          className="font-medium text-primary"
+        >
           Create an account
         </Link>
       </p>

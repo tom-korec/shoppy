@@ -2,8 +2,9 @@ import type { ListDetailDto } from '@shoppy/shared';
 import { useNavigate } from '@tanstack/react-router';
 import { ConfirmSheet } from '@/components/ui/confirm-sheet';
 import { Sheet } from '@/components/ui/sheet';
-import { ListForm } from '@/features/lists/list-form';
+import { EditListForm } from '@/features/lists/edit-list-form';
 import { useDeleteList } from '@/features/lists/use-delete-list';
+import { listAbilities } from './list-abilities';
 import { ListMenuSheet, type ListMenuAction } from './list-menu-sheet';
 import { useBulkEntries } from './use-bulk-entries';
 
@@ -34,11 +35,12 @@ export function ListDialogs({ list, dialog, onMenuAction, onClose }: ListDialogs
         isOpen={dialog === 'menu'}
         isArchived={list.isArchived}
         hasEntries={count > 0}
+        abilities={listAbilities(list)}
         onAction={onMenuAction}
         onClose={onClose}
       />
       <Sheet isOpen={dialog === 'edit'} onClose={onClose} title="Edit list">
-        <ListForm list={list} onSaved={onClose} />
+        <EditListForm list={list} onSaved={onClose} />
       </Sheet>
       <ConfirmSheet
         isOpen={dialog === 'check-all'}

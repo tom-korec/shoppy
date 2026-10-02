@@ -1,0 +1,27 @@
+import type { Permission } from '@shoppy/shared';
+
+export const PERMISSION_LABELS: Record<Permission, string> = {
+  'household.rename': 'Rename the household',
+  'household.delete': 'Delete the household',
+  'household.transfer': 'Transfer ownership',
+  'member.invite': 'Invite people',
+  'member.remove': 'Remove members',
+  'member.changeRole': 'Change roles',
+  'member.editPermissions': 'Edit permissions',
+  'list.create': 'Create lists',
+  'list.update': 'Rename and archive lists',
+  'list.delete': 'Delete lists',
+  'entry.add': 'Add to lists',
+  'entry.edit': 'Edit notes',
+  'entry.remove': 'Delete entries',
+  'entry.check': 'Check off entries',
+  'item.create': 'Add catalog items',
+  'item.update': 'Edit catalog items',
+  'item.delete': 'Delete catalog items',
+  'category.create': 'Add categories',
+  'category.update': 'Edit and reorder categories',
+  'category.delete': 'Delete categories',
+  'history.view': 'See history',
+  'history.restore': 'Put back and re-add from history',
+  'history.delete': 'Delete history',
+};

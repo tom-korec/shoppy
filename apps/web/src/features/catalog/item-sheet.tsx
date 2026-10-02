@@ -4,17 +4,29 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ConfirmSheet } from '@/components/ui/confirm-sheet';
 import { Sheet } from '@/components/ui/sheet';
+import type { ScopeKey } from '@/features/households/scope-key';
 import { ItemForm } from './item-form';
 import { useDeleteItem } from './use-delete-item';
 
 interface ItemSheetProps {
   isOpen: boolean;
+  scope: ScopeKey;
   item?: ItemDto;
   initialCategoryId?: string;
+  canUpdate: boolean;
+  canDelete: boolean;
   onClose: () => void;
 }
 
-export function ItemSheet({ isOpen, item, initialCategoryId, onClose }: ItemSheetProps) {
+export function ItemSheet({
+  isOpen,
+  scope,
+  item,
+  initialCategoryId,
+  canUpdate,
+  canDelete,
+  onClose,
+}: ItemSheetProps) {
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const deleteItem = useDeleteItem();
 
@@ -35,8 +47,15 @@ export function ItemSheet({ isOpen, item, initialCategoryId, onClose }: ItemShee
         onClose={onClose}
         title={item ? 'Edit item' : 'New item'}
       >
-        <ItemForm item={item} initialCategoryId={initialCategoryId} onSaved={onClose} />
-        {item && (
+        {(!item || canUpdate) && (
+          <ItemForm
+            scope={scope}
+            item={item}
+            initialCategoryId={initialCategoryId}
+            onSaved={onClose}
+          />
+        )}
+        {item && canDelete && (
           <Button variant="danger" width="full" onClick={() => setIsConfirmingDelete(true)}>
             <Trash2 className="size-4" aria-hidden />
             Delete item
