@@ -112,7 +112,7 @@ flowchart LR
 
 ## 3.5 Authorization design
 
-- A NestJS `PermissionsGuard` plus a decorator, e.g. `@RequirePermission('entry.check')`, on household-scoped routes.
+- A `ScopeAccess` service (`apps/api/src/common/scope/`) that every feature service calls with the permission of the action, e.g. `access.require(user, scopeOf(list), 'entry.check')`. A guard can't know the scope of a by-id route without loading the row, so the check happens in the service right after the row is loaded (D-59).
 - The guard resolves the **scope** from the route (list → its scope, item → its scope, …):
   - personal scope → allowed only if `ownerUserId === currentUser`. Phase 2 implements this in the services: by-id lookups filter with `accessibleBy(user)`, so another user's row answers **404** (ids don't leak), and `/scopes/personal/...` routes take the scope from `@CurrentScope()` (`apps/api/src/common/scope/`);
   - household scope → load the membership and compute effective permissions (FR-R5); the result is cached per request.
@@ -144,6 +144,7 @@ erDiagram
     LIST ||--o{ PURCHASE_RECORD : history
     USER ||--o{ FAVORITE_LIST : pins
     USER ||--o{ LIST_VISIT : opens
+    USER ||--o{ LIST_POSITION : orders
 
     USER {
         uuid id PK
@@ -181,7 +182,6 @@ erDiagram
     HOUSEHOLD {
         uuid id PK
         text name
-        uuid owner_id FK
         timestamptz created_at
     }
     HOUSEHOLD_MEMBER {
@@ -199,15 +199,16 @@ erDiagram
     INVITATION {
         uuid id PK
         uuid household_id FK
-        enum kind "LINK|CODE|EMAIL|USER"
-        text token_hash
-        text code
-        citext email
-        enum role
+        enum kind "LINK|CODE|EMAIL"
+        text token_hash "LINK, EMAIL"
+        text code_hash "CODE"
+        citext email "EMAIL"
+        enum role "never OWNER"
         int max_uses
         int used_count
         timestamptz expires_at
-        enum status
+        timestamptz revoked_at
+        timestamptz declined_at
         uuid created_by FK
     }
     CATEGORY {
@@ -234,6 +235,7 @@ erDiagram
         text name
         text icon
         timestamptz archived_at
+        timestamptz last_activity_at
         uuid created_by FK
     }
     LIST_ENTRY {
@@ -268,6 +270,11 @@ erDiagram
         uuid list_id FK
         timestamptz last_opened_at
     }
+    LIST_POSITION {
+        uuid user_id FK
+        uuid list_id FK
+        int position
+    }
 ```
 
 Tables use plural snake_case names (`users`, `session_families`, `categories` …).
@@ -280,27 +287,30 @@ Key constraints:
 - LIST_ENTRY.checked_at / checked_by: struck through in shopping mode; Finish turns them into purchase records with `bought_at = checked_at` (D-47).
 - Unique `(scope, lower(name))` on ITEM and CATEGORY.
 - No uniqueness on `(list_id, item_id)`: the same item may appear several times (FR-L10).
-- HOUSEHOLD_MEMBER unique `(household_id, user_id)`; exactly one OWNER per household (partial unique index).
+- HOUSEHOLD_MEMBER unique `(household_id, user_id)`; exactly one OWNER per household (partial unique index). The Owner is only stored as that member's role (no `owner_id` on HOUSEHOLD).
+- INVITATION: link tokens and codes are stored hashed (shown once when created); a CHECK ties the columns to the kind; the role is never OWNER.
+- LIST.last_activity_at changes with any change to the list, its entries or its history (Lists screen "last activity" sort). LIST_POSITION holds a user's own order of the lists they can see; USER.lists_grouped / lists_sort hold their Lists screen view (D-56).
+- Deleting a HOUSEHOLD deletes its lists first, then the rest cascades (an entry must keep an item or a text).
 - PURCHASE_RECORD keeps `name_snapshot` so history survives item deletion. Index `(list_id, bought_at DESC)` serves both the adaptive recent window and pagination.
 - **Check** = one transaction: insert PURCHASE_RECORD, delete LIST_ENTRY. **Restore** = the reverse. **Re-add** = insert LIST_ENTRY only.
 - Deleting an ITEM first turns its entries into one-time entries (name and category copied, FR-I6); PURCHASE_RECORD.item_id is set to NULL.
-- Phase 2 tables are personal-scope only (`owner_user_id NOT NULL`); Phase 3 adds `household_id` and the scope CHECK.
+- CATEGORY, ITEM and LIST have `owner_user_id` or `household_id` (scope CHECK); names are unique per user and per household.
 
 ## 3.7 API outline (REST, `/api`)
 
-| Area        | Endpoints                                                                                                                                                                                                                                                                              |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Auth        | `POST /auth/register`, `/auth/login`, `/auth/google`, `/auth/refresh`, `/auth/logout`, `/auth/verify-email`, `/auth/resend-verification`, `/auth/forgot-password`, `/auth/reset-password`                                                                                              |
-| Me          | `GET/PATCH /me`, `POST /me/password`, `GET /me/sessions`, `DELETE /me/sessions/:id`, `DELETE /me/sessions` (all), `DELETE /me`, `GET /me/export`, `GET /me/dashboard`, `GET/POST/PATCH/DELETE /me/favorites`                                                                           |
-| Scopes      | Resources are addressed by scope: `/scopes/personal/...` and `/scopes/households/:hid/...`                                                                                                                                                                                             |
-| Categories  | `GET/POST {scope}/categories`, `PATCH/DELETE /categories/:id`, `POST {scope}/categories/reorder` (the complete new order)                                                                                                                                                              |
-| Items       | `GET/POST {scope}/items`, `PATCH/DELETE /items/:id`, `POST /items/copy` (target scope + item ids)                                                                                                                                                                                      |
-| Lists       | `GET/POST {scope}/lists`, `GET/PATCH/DELETE /lists/:id`                                                                                                                                                                                                                                |
-| Entries     | `POST /lists/:id/entries`, `PATCH/DELETE /entries/:id`, `POST /entries/:id/check`, `POST /entries/:id/promote`, `POST /lists/:id/entries/bulk` (`{action: check\|delete, ids \| all}`), `POST /lists/:id/finish-shopping`; `PATCH /entries/:id` also takes `isChecked` (shopping mode) |
-| History     | `GET /lists/:id/history/recent` (adaptive window, FR-L12), `GET /lists/:id/history?cursor=&limit=` (paginated), `POST /history/:id/restore`, `POST /history/:id/readd`, `DELETE /history/:id`, `POST /lists/:id/history/bulk` (`{action: restore\|readd\|delete, ids}`)                |
-| Households  | `GET/POST /households`, `GET/PATCH/DELETE /households/:id`, `POST /households/:id/transfer`, `POST /households/:id/leave`                                                                                                                                                              |
-| Members     | `GET /households/:id/members`, `PATCH /members/:id` (role, overrides), `DELETE /members/:id`                                                                                                                                                                                           |
-| Invitations | `POST /households/:id/invitations`, `GET /households/:id/invitations`, `DELETE /invitations/:id`, `GET /invitations/pending`, `POST /invitations/accept` (token or code), `POST /invitations/:id/decline`                                                                              |
+| Area        | Endpoints                                                                                                                                                                                                                                                                                          |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth        | `POST /auth/register`, `/auth/login`, `/auth/google`, `/auth/refresh`, `/auth/logout`, `/auth/verify-email`, `/auth/resend-verification`, `/auth/forgot-password`, `/auth/reset-password`                                                                                                          |
+| Me          | `GET/PATCH /me`, `POST /me/password`, `GET /me/sessions`, `DELETE /me/sessions/:id`, `DELETE /me/sessions` (all), `DELETE /me`, `GET /me/export`, `GET /me/dashboard`, `GET/POST/PATCH/DELETE /me/favorites`, `GET/PATCH /me/list-view` (grouping, sort), `PUT /me/list-view/order` (custom order) |
+| Scopes      | Resources are addressed by scope: `/scopes/personal/...` and `/scopes/households/:hid/...`                                                                                                                                                                                                         |
+| Categories  | `GET/POST {scope}/categories`, `PATCH/DELETE /categories/:id`, `POST {scope}/categories/reorder` (the complete new order)                                                                                                                                                                          |
+| Items       | `GET/POST {scope}/items`, `PATCH/DELETE /items/:id`, `POST /items/copy` (target scope + item ids)                                                                                                                                                                                                  |
+| Lists       | `GET /lists` (every list the user can see, with its scope), `GET/POST {scope}/lists`, `GET/PATCH/DELETE /lists/:id` (the detail includes the user's permissions on the list)                                                                                                                       |
+| Entries     | `POST /lists/:id/entries`, `PATCH/DELETE /entries/:id`, `POST /entries/:id/check`, `POST /entries/:id/promote`, `POST /lists/:id/entries/bulk` (`{action: check\|delete, ids \| all}`), `POST /lists/:id/finish-shopping`; `PATCH /entries/:id` also takes `isChecked` (shopping mode)             |
+| History     | `GET /lists/:id/history/recent` (adaptive window, FR-L12), `GET /lists/:id/history?cursor=&limit=` (paginated), `POST /history/:id/restore`, `POST /history/:id/readd`, `DELETE /history/:id`, `POST /lists/:id/history/bulk` (`{action: restore\|readd\|delete, ids}`)                            |
+| Households  | `GET/POST /households`, `GET/PATCH/DELETE /households/:id`, `POST /households/:id/transfer`, `POST /households/:id/leave`                                                                                                                                                                          |
+| Members     | `GET /households/:id/members`, `PATCH /members/:id` (role, overrides), `DELETE /members/:id`                                                                                                                                                                                                       |
+| Invitations | `POST /households/:id/invitations`, `GET /households/:id/invitations`, `DELETE /invitations/:id`, `GET /invitations/pending`, `POST /invitations/preview` and `POST /invitations/accept` (token, code or pending invitation id, in the body), `POST /invitations/:id/decline`                      |
 
 ## 3.8 PWA specifics
 

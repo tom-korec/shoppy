@@ -87,21 +87,22 @@ flowchart LR
 
 **Goal:** shared lists with enforced, configurable permissions.
 
-| ID    | Task                                                                                                                                         |
-| ----- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| P3-01 | Permission catalog + role defaults and ceilings in `packages/shared`                                                                         |
-| P3-02 | DB: `household`, `household_member`, `member_permission_override`; one-owner constraint                                                      |
-| P3-03 | `PermissionsGuard` + `@RequirePermission` decorator; effective-permission resolver                                                           |
-| P3-04 | Create a household (seeds categories), rename, delete (with confirmation)                                                                    |
-| P3-05 | Household scope for categories, items, lists, entries and history (reusing the Phase 2 code through the scope abstraction)                   |
-| P3-06 | Invitations: link, code, in-app (existing user by email), email. 7-day default expiry, max uses, revoke                                      |
-| P3-07 | Accept/decline invitation flows (deep link `/join/:token`, "enter code" screen, pending list)                                                |
-| P3-08 | Members screen: list members, change role, edit permission overrides (checkbox UI limited to the ceiling), remove member                     |
-| P3-09 | Leave household; transfer ownership                                                                                                          |
-| P3-10 | Copy items between personal ↔ household catalogs (FR-I5)                                                                                     |
-| P3-11 | Web: permission-aware UI (hide or disable actions), a household switcher/section in navigation                                               |
-| P3-12 | Account deletion rules for household owners (FR-A8)                                                                                          |
-| P3-13 | Tests: generated permission-matrix tests, member-management rules (Admin can't touch the Owner or other Admins, etc.), invitation edge cases |
+| ID    | Task                                                                                                                                                                                                                                                              |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P3-01 | Permission catalog + role defaults and ceilings in `packages/shared` — ✅ Done, with a generated test of the whole approved matrix                                                                                                                                |
+| P3-02 | DB: `household`, `household_member`, `member_permission_override`; one-owner constraint — ✅ Done, plus invitations, scope CHECKs and list view tables (D-59)                                                                                                     |
+| P3-03 | `PermissionsGuard` + `@RequirePermission` decorator; effective-permission resolver — ✅ Done as a `ScopeAccess` service called by each feature service (D-59)                                                                                                     |
+| P3-04 | Create a household (seeds categories), rename, delete (with confirmation) — ✅ Done                                                                                                                                                                               |
+| P3-05 | Household scope for categories, items, lists, entries and history (reusing the Phase 2 code through the scope abstraction) — ✅ Done                                                                                                                              |
+| P3-06 | Invitations: link, code, in-app (existing user by email), email. 7-day default expiry, max uses, revoke — ✅ Done, with email and in-app merged into "Invite by email" (D-57, D-60)                                                                               |
+| P3-07 | Accept/decline invitation flows (deep link `/join/:token`, "enter code" screen, pending list) — ✅ Done. The join link survives sign-in and registration (D-63)                                                                                                   |
+| P3-08 | Members screen: list members, change role, edit permission overrides (checkbox UI limited to the ceiling), remove member — ✅ Done (Profile → Households)                                                                                                         |
+| P3-09 | Leave household; transfer ownership — ✅ Done                                                                                                                                                                                                                     |
+| P3-10 | Copy items between personal ↔ household catalogs (FR-I5) — ✅ Done (Catalog → Select → Copy to…)                                                                                                                                                                  |
+| P3-11 | Web: permission-aware UI (hide or disable actions), a household switcher/section in navigation — ✅ Done: actions are hidden (D-57), Catalog switcher, Lists grouped by household                                                                                 |
+| P3-12 | Account deletion rules for household owners (FR-A8) — ⏳ Moved to P5-02, together with account deletion itself (D-58)                                                                                                                                             |
+| P3-13 | Tests: generated permission-matrix tests, member-management rules (Admin can't touch the Owner or other Admins, etc.), invitation edge cases — ✅ Done: the matrix through the real API (92 cases), member rules, invitations, E2E for a shared list and a Viewer |
+| P3-14 | Lists screen view: grouping by household on/off, sort by activity / newest / own order (FR-L20) — ✅ Done (added in Phase 3, D-56)                                                                                                                                |
 
 **Done when:** two users can share a household list, and every action in the RBAC matrix is enforced on the API and reflected in the UI.
 
@@ -128,15 +129,15 @@ flowchart LR
 
 ## Phase 5: Hardening & MVP release 🚀
 
-| ID    | Task                                                                                                   |
-| ----- | ------------------------------------------------------------------------------------------------------ |
-| P5-01 | Security review: rate limits, headers (CSP, HSTS), cookie flags, input limits, OWASP ASVS L1 checklist |
-| P5-02 | GDPR: data export (JSON) + account deletion; privacy page                                              |
-| P5-03 | Backups: verify Neon restore; document the restore runbook                                             |
-| P5-04 | Free-tier guardrails: budget alerts, Neon storage monitoring, Artifact Registry cleanup policy         |
-| P5-05 | Error and edge-case review in Sentry, fix the top issues                                               |
-| P5-06 | Docs: user-facing help (install, invitations), operations runbook                                      |
-| P5-07 | Release v1.0 (tag, changelog)                                                                          |
+| ID    | Task                                                                                                                         |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------- |
+| P5-01 | Security review: rate limits, headers (CSP, HSTS), cookie flags, input limits, OWASP ASVS L1 checklist                       |
+| P5-02 | GDPR: data export (JSON) + account deletion (owned households transferred or deleted first, FR-A8, from P3-12); privacy page |
+| P5-03 | Backups: verify Neon restore; document the restore runbook                                                                   |
+| P5-04 | Free-tier guardrails: budget alerts, Neon storage monitoring, Artifact Registry cleanup policy                               |
+| P5-05 | Error and edge-case review in Sentry, fix the top issues                                                                     |
+| P5-06 | Docs: user-facing help (install, invitations), operations runbook                                                            |
+| P5-07 | Release v1.0 (tag, changelog)                                                                                                |
 
 **Done when:** v1.0 is in real household use at $0/month.
 
