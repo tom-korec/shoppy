@@ -15,6 +15,7 @@ import { ListCard } from './list-card';
 import { ListViewSheet } from './list-view-sheet';
 import { NewListForm } from './new-list-form';
 import { useListView } from './use-list-view';
+import { useReorderLists } from './use-reorder-lists';
 import { useLists } from './use-lists';
 
 type Dialog = 'new' | 'view' | 'arrange' | null;
@@ -24,6 +25,7 @@ const DEFAULT_VIEW = { isGrouped: true, sort: 'ACTIVITY', customOrder: [] } as c
 export function ListsPage() {
   const lists = useLists();
   const view = useListView();
+  const reorderLists = useReorderLists();
   const navigate = useNavigate();
   const [dialog, setDialog] = useState<Dialog>(null);
   const settings = view.data ?? { ...DEFAULT_VIEW, customOrder: [] };
@@ -92,7 +94,9 @@ export function ListsPage() {
               )}
               <ArrangeListsSheet
                 isOpen={dialog === 'arrange'}
+                title="Arrange lists"
                 lists={active}
+                onReorder={(ids) => reorderLists.mutate(ids)}
                 onClose={() => setDialog(null)}
               />
             </>

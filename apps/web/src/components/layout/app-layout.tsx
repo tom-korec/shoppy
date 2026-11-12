@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from '@tanstack/react-router';
 import { useAuth } from '@/features/auth/use-auth';
 import { BottomNav } from './bottom-nav';
+import { PullToRefresh } from './pull-to-refresh';
 import { SideNav } from './side-nav';
 import { Toaster } from './toaster';
 
@@ -13,6 +14,7 @@ export function AppLayout() {
   return (
     <>
       <SideNav />
+      <PullToRefresh />
       <main className="min-h-full pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0 lg:pl-60">
         <Outlet />
       </main>

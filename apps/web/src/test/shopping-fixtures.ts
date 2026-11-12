@@ -3,6 +3,7 @@ import {
   type EntryDto,
   type ItemDto,
   type ListDetailDto,
+  type ListDto,
   PERMISSIONS,
   type PurchaseRecordDto,
   type RecentHistoryDto,
@@ -61,8 +62,19 @@ export function buildList(
     lastActivityAt: '2026-10-01T12:00:00.000Z',
     entries,
     permissions: [...PERMISSIONS],
+    isFavorite: false,
     ...overrides,
   };
+}
+
+export function buildListSummary(overrides: Partial<ListDto> = {}): ListDto {
+  const {
+    entries: _entries,
+    permissions: _permissions,
+    isFavorite: _isFavorite,
+    ...summary
+  } = buildList();
+  return { ...summary, ...overrides };
 }
 
 export function buildRecord(overrides: Partial<PurchaseRecordDto> = {}): PurchaseRecordDto {

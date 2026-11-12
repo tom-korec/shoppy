@@ -17,7 +17,7 @@ async function createHouseholdWithInviteLink(page: Page, role?: 'Viewer'): Promi
 }
 
 async function createHouseholdList(page: Page, name: string): Promise<void> {
-  await page.getByRole('link', { name: 'Lists' }).click();
+  await page.getByRole('link', { name: 'Lists', exact: true }).click();
   await page.getByRole('button', { name: 'New list' }).click();
   await page.getByLabel('Name', { exact: true }).fill(name);
   await page.getByLabel('For', { exact: true }).selectOption({ label: 'Home' });
@@ -42,7 +42,7 @@ test('two people share a household list', async ({ page, browser, baseURL }) => 
   const member = await memberContext.newPage();
   await signInNewUser(member);
   await joinWith(member, joinPath);
-  await member.getByRole('link', { name: 'Lists' }).click();
+  await member.getByRole('link', { name: 'Lists', exact: true }).click();
   await expect(member.getByRole('heading', { name: 'Home' })).toBeVisible();
   await member.getByRole('link', { name: /Shared/ }).click();
   await expect(member.getByText('Milk')).toBeVisible();
@@ -69,7 +69,7 @@ test('a Viewer sees a shared list without the add box or checkboxes', async ({
   const viewer = await viewerContext.newPage();
   await signInNewUser(viewer);
   await joinWith(viewer, joinPath);
-  await viewer.getByRole('link', { name: 'Lists' }).click();
+  await viewer.getByRole('link', { name: 'Lists', exact: true }).click();
   await viewer.getByRole('link', { name: /Shared/ }).click();
 
   await expect(viewer.getByText('Milk')).toBeVisible();

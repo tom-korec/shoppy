@@ -17,16 +17,22 @@ import {
 import type { ListDto } from '@shoppy/shared';
 import { Sheet } from '@/components/ui/sheet';
 import { SortableListRow } from './sortable-list-row';
-import { useReorderLists } from './use-reorder-lists';
 
 interface ArrangeListsSheetProps {
   isOpen: boolean;
+  title: string;
   lists: ListDto[];
+  onReorder: (ids: string[]) => void;
   onClose: () => void;
 }
 
-export function ArrangeListsSheet({ isOpen, lists, onClose }: ArrangeListsSheetProps) {
-  const reorder = useReorderLists();
+export function ArrangeListsSheet({
+  isOpen,
+  title,
+  lists,
+  onReorder,
+  onClose,
+}: ArrangeListsSheetProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 5 } }),
@@ -38,11 +44,11 @@ export function ArrangeListsSheet({ isOpen, lists, onClose }: ArrangeListsSheetP
     if (!over || active.id === over.id) return;
     const from = lists.findIndex(({ id }) => id === active.id);
     const to = lists.findIndex(({ id }) => id === over.id);
-    reorder.mutate(arrayMove(lists, from, to).map(({ id }) => id));
+    onReorder(arrayMove(lists, from, to).map(({ id }) => id));
   };
 
   return (
-    <Sheet isOpen={isOpen} onClose={onClose} title="Arrange lists">
+    <Sheet isOpen={isOpen} onClose={onClose} title={title}>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}

@@ -34,6 +34,7 @@ export function SortableListRow({ list }: SortableListRowProps) {
       <button
         type="button"
         ref={setActivatorNodeRef}
+        data-drag-handle
         aria-label={`Reorder ${list.name}`}
         className="flex size-11 touch-none items-center justify-center text-muted-foreground"
         {...attributes}

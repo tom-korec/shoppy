@@ -47,6 +47,14 @@ export function insertById(entries: EntryDto[], entry: EntryDto): EntryDto[] {
   return index === -1 ? [...entries, entry] : entries.toSpliced(index, 0, entry);
 }
 
+// Whether a query belongs to a list whose own changes are still on their way: refetching it now
+// would drop their optimistic entries.
+export function hasPendingListChanges(queryClient: QueryClient, queryKey: readonly unknown[]) {
+  const [root, kind, listId] = queryKey;
+  if (root !== 'lists' || kind !== 'detail' || typeof listId !== 'string') return false;
+  return queryClient.isMutating({ mutationKey: entryMutationKey(listId) }) > 0;
+}
+
 // Refetch only once the last pending change of the list has settled; refetching earlier would
 // briefly drop optimistic entries that are still on their way to the server. The Lists screen
 // refreshes too (entry counts, last activity).

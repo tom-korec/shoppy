@@ -7,6 +7,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { IconButton } from '@/components/ui/icon-button';
 import { Page } from '@/components/ui/page';
 import { useItems } from '@/features/catalog/use-items';
+import { FavoriteButton } from '@/features/dashboard/favorite-button';
+import { useRecordVisit } from '@/features/dashboard/use-record-visit';
 import { useCategories } from '@/features/categories/use-categories';
 import { RecentHistorySection } from '@/features/history/recent-history-section';
 import { useRecentHistory } from '@/features/history/use-recent-history';
@@ -25,6 +27,8 @@ import { QuickAddBar } from './quick-add-bar';
 import { SelectionBar } from './selection-bar';
 import { useBulkEntries } from './use-bulk-entries';
 import { useCheckEntry } from './use-check-entry';
+import { useDeleteEntry } from './use-delete-entry';
+import { usePollList } from './use-poll-list';
 import { useSelection } from './use-selection';
 
 interface ListViewProps {
@@ -39,11 +43,14 @@ export function ListView({ list }: ListViewProps) {
   const items = useItems(scope);
   const recent = useRecentHistory(list.id, abilities.canViewHistory);
   const checkEntry = useCheckEntry(list.id);
+  const deleteEntry = useDeleteEntry(list.id);
   const bulk = useBulkEntries(list.id);
   const saveList = useSaveList(list);
   const selection = useSelection();
   const [openEntry, setOpenEntry] = useState<EntryDto>();
   const [dialog, setDialog] = useState<ListDialog>(null);
+  useRecordVisit(list.id);
+  usePollList(list.id);
 
   const groups = groupEntries(list.entries, categories.data ?? []);
   const hasEntries = list.entries.length > 0;
@@ -78,6 +85,7 @@ export function ListView({ list }: ListViewProps) {
       kind: 'plan',
       onCheck: abilities.canCheck ? () => checkEntry.mutate(entry) : undefined,
       onOpen: abilities.canEdit || abilities.canRemove ? () => setOpenEntry(entry) : undefined,
+      onDelete: abilities.canRemove ? () => deleteEntry.mutate(entry) : undefined,
     };
   };
 
@@ -99,6 +107,7 @@ export function ListView({ list }: ListViewProps) {
               Shop
             </Link>
           )}
+          <FavoriteButton listId={list.id} isFavorite={list.isFavorite} />
           <IconButton icon={Ellipsis} label="List options" onClick={() => setDialog('menu')} />
         </>
       }

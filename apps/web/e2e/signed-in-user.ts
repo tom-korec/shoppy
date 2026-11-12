@@ -19,7 +19,7 @@ export async function signInNewUser(page: Page): Promise<void> {
 }
 
 export async function createList(page: Page, name: string): Promise<void> {
-  await page.getByRole('link', { name: 'Lists' }).click();
+  await page.getByRole('link', { name: 'Lists', exact: true }).click();
   await page.getByRole('button', { name: 'New list' }).click();
   await page.getByLabel('Name', { exact: true }).fill(name);
   await page.getByRole('button', { name: 'Create list' }).click();

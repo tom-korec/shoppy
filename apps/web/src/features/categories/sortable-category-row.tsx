@@ -47,6 +47,7 @@ export function SortableCategoryRow({ category, isReorderable, onOpen }: Sortabl
         <button
           type="button"
           ref={setActivatorNodeRef}
+          data-drag-handle
           aria-label={`Reorder ${category.name}`}
           className="flex size-11 touch-none items-center justify-center text-muted-foreground"
           {...attributes}

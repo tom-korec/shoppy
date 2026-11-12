@@ -30,3 +30,11 @@ if (typeof HTMLDialogElement !== 'undefined') {
     },
   });
 }
+
+// jsdom has no pointer capture, which swipe gestures use.
+if (typeof Element !== 'undefined' && !('setPointerCapture' in Element.prototype)) {
+  Object.defineProperty(Element.prototype, 'setPointerCapture', {
+    configurable: true,
+    value() {},
+  });
+}

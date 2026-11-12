@@ -3,12 +3,14 @@ import { createRouter, RouterProvider } from '@tanstack/react-router';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { authStore } from './lib/auth-store';
+import { installPromptStore } from './lib/install-prompt-store';
 import { createQueryClient } from './lib/query-client';
 import { initSentry } from './lib/sentry';
 import { routeTree } from './routeTree.gen';
 import './index.css';
 
 initSentry();
+installPromptStore.listen(window);
 
 const queryClient = createQueryClient();
 

@@ -15,7 +15,7 @@ export function ListCard({ list, showsScope }: ListCardProps) {
       <Link
         to="/lists/$listId"
         params={{ listId: list.id }}
-        className="flex min-h-16 items-center gap-3 rounded-2xl border border-border bg-card px-4 lg:min-h-20 lg:hover:border-primary/40 lg:hover:bg-muted/50"
+        className="flex min-h-16 items-center gap-3 rounded-2xl border border-border bg-card px-4 transition active:scale-[0.99] lg:min-h-20 lg:hover:border-primary/40 lg:hover:bg-muted/50"
       >
         <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
           <AppIcon name={list.icon} />

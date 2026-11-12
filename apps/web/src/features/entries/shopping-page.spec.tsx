@@ -20,6 +20,7 @@ describe('ShoppingPage', () => {
     const fetchMock = stubApi({
       [`GET /api/lists/${LIST_ID}`]: () => Response.json(buildList([current])),
       [`GET /api/lists/${LIST_ID}/history/recent`]: () => Response.json(NO_RECENT_HISTORY),
+      [`POST /api/lists/${LIST_ID}/visits`]: () => new Response(null, { status: 204 }),
       'GET /api/scopes/personal/categories': () => Response.json([]),
       'GET /api/scopes/personal/items': () => Response.json([]),
       [`PATCH /api/entries/${entry.id}`]: () => {

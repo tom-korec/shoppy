@@ -45,6 +45,32 @@ export default defineConfig({
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          // Route splitting otherwise leaves dozens of sub-kilobyte chunks (one per icon or UI
+          // component), each a request on the critical path of a cold start on a phone. Groups
+          // must not import each other in a cycle (that breaks module initialization): `vendor`
+          // imports nothing of ours, `ui` only `vendor`. Libraries loaded lazily stay out.
+          groups: [
+            {
+              name: 'ui',
+              test: /[\\/]src[\\/](components[\\/]ui|lib)[\\/]|lucide-react/,
+              includeDependenciesRecursively: false,
+            },
+            {
+              name: 'vendor',
+              test: (id) =>
+                /node_modules|[\\/]packages[\\/]shared[\\/]/.test(id) &&
+                !/@sentry|@dnd-kit|devtools/.test(id),
+              includeDependenciesRecursively: false,
+            },
+          ],
+        },
+      },
+    },
+  },
   server: {
     port: 5180,
     strictPort: true,

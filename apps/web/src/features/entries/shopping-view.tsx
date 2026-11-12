@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Page } from '@/components/ui/page';
 import { useItems } from '@/features/catalog/use-items';
 import { useCategories } from '@/features/categories/use-categories';
+import { useRecordVisit } from '@/features/dashboard/use-record-visit';
 import { useRecentHistory } from '@/features/history/use-recent-history';
 import { scopeOfList } from '@/features/households/scope-key';
 import { EntryGroups } from './entry-groups';
@@ -17,6 +18,7 @@ import { buildNewEntry } from './new-entry';
 import { QuickAddForm } from './quick-add-form';
 import { ShoppingEntryRow } from './shopping-entry-row';
 import { useAddEntry } from './use-add-entry';
+import { usePollList } from './use-poll-list';
 import { useFinishShopping } from './use-finish-shopping';
 import { useUpdateEntry } from './use-update-entry';
 
@@ -37,6 +39,8 @@ export function ShoppingView({ list }: ShoppingViewProps) {
   const addEntry = useAddEntry(list.id);
   const updateEntry = useUpdateEntry(list.id);
   const finish = useFinishShopping(list.id);
+  useRecordVisit(list.id);
+  usePollList(list.id);
 
   if (!abilities.canCheck) return <Navigate to="/lists/$listId" params={{ listId: list.id }} />;
 

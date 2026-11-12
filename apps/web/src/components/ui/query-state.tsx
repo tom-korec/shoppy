@@ -1,8 +1,8 @@
 import type { UseQueryResult } from '@tanstack/react-query';
-import { LoaderCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Button } from './button';
 import { FormAlert } from './form-alert';
+import { SkeletonList } from './skeleton-list';
 
 interface QueryStateProps<T> {
   query: UseQueryResult<T>;
@@ -22,9 +22,5 @@ export function QueryState<T>({ query, children }: QueryStateProps<T>) {
       </div>
     );
   }
-  return (
-    <div className="flex justify-center py-8" aria-label="Loading">
-      <LoaderCircle className="size-6 animate-spin text-muted-foreground" aria-hidden />
-    </div>
-  );
+  return <SkeletonList />;
 }

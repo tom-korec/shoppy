@@ -1,6 +1,7 @@
 import type { EntryDto } from '@shoppy/shared';
 import { CheckMark } from '@/components/ui/check-mark';
 import { cn } from '@/lib/cn';
+import { haptic } from '@/lib/haptic';
 
 interface ShoppingEntryRowProps {
   entry: EntryDto;
@@ -16,7 +17,10 @@ export function ShoppingEntryRow({ entry, onToggle }: ShoppingEntryRowProps) {
           type="checkbox"
           aria-label={entry.note ? `${entry.name}, ${entry.note}` : entry.name}
           checked={entry.isChecked}
-          onChange={onToggle}
+          onChange={() => {
+            haptic();
+            onToggle();
+          }}
           className="peer absolute inset-0 size-full cursor-pointer appearance-none opacity-0"
         />
         <CheckMark />

@@ -17,7 +17,7 @@ export function EntryGroups({ groups, renderEntry }: EntryGroupsProps) {
             <AppIcon name={category?.icon ?? 'tag'} className="size-4" />
             {category?.name ?? 'No category'}
           </h2>
-          <ul className="divide-y divide-border rounded-2xl border border-border bg-card">
+          <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
             {entries.map(renderEntry)}
           </ul>
         </section>
