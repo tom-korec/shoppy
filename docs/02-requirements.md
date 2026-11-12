@@ -142,7 +142,7 @@ Viewing a household's lists, items, categories and members is implicit for every
 | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | FR-D1 | Each user has a dashboard (the home screen after login).                                                                                        |
 | FR-D2 | **Favorite lists**: the user can star or unstar any list they can access (personal or household) and reorder favorites. Favorites are per user. |
-| FR-D3 | **Recently used lists**: the lists the user opened most recently (up to 5).                                                                     |
+| FR-D3 | **Recently used lists**: the lists the user opened most recently (up to 5), leaving out favorites and archived lists.                           |
 | FR-D4 | **Pending invitations**: accept or decline household invitations.                                                                               |
 | FR-D5 | A separate **Lists** screen shows all accessible lists, grouped by Personal and each household.                                                 |
 

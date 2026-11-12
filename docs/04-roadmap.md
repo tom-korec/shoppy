@@ -112,16 +112,16 @@ flowchart LR
 
 **Goal:** the app feels native on a phone.
 
-| ID    | Task                                                                                                               |
-| ----- | ------------------------------------------------------------------------------------------------------------------ |
-| P4-01 | Favorites: star/unstar, reorder (drag and drop)                                                                    |
-| P4-02 | Recently used lists (track list visits)                                                                            |
-| P4-03 | Dashboard screen: favorites, recent, pending invitations                                                           |
-| P4-04 | "All lists" screen grouped by Personal and each household                                                          |
-| P4-05 | Install prompt (Android) + "Add to Home Screen" guide (iOS)                                                        |
-| P4-06 | Native feel: pull to refresh, swipe to check/delete an entry, haptic-like feedback, skeleton loaders, empty states |
-| P4-07 | Refetch on focus/visibility (a lightweight "sync" until Phase 6)                                                   |
-| P4-08 | Lighthouse PWA/performance/accessibility pass on mobile                                                            |
+| ID    | Task                                                                                                                                                   |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| P4-01 | Favorites: star/unstar, reorder (drag and drop) — ✅ Done: star in the list header, "Arrange favorites" on Home (D-65)                                 |
+| P4-02 | Recently used lists (track list visits) — ✅ Done: `POST /lists/:id/visits` when a list or its shopping mode opens (D-66)                              |
+| P4-03 | Dashboard screen: favorites, recent, pending invitations — ✅ Done (D-67)                                                                              |
+| P4-04 | "All lists" screen grouped by Personal and each household — ✅ Done in Phase 3 as the Lists screen (D-56); Home links to it                            |
+| P4-05 | Install prompt (Android) + "Add to Home Screen" guide (iOS) — ✅ Done: a card on Home (D-68)                                                           |
+| P4-06 | Native feel: pull to refresh, swipe to check/delete an entry, haptic-like feedback, skeleton loaders, empty states — ✅ Done (D-69)                    |
+| P4-07 | Refetch on focus/visibility (a lightweight "sync" until Phase 6) — ✅ Done: focus and reconnect refetch, plus an open list polled every 30 s (D-70)    |
+| P4-08 | Lighthouse PWA/performance/accessibility pass on mobile — ✅ Done: Home, Lists and a list score 94–96 / 100 / 100 on the local production build (D-71) |
 
 **Done when:** the dashboard is the home screen and Lighthouse mobile scores are ≥ 90 for performance, accessibility and best practices.
 
