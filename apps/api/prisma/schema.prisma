@@ -37,6 +37,8 @@ model User {
   householdMembers HouseholdMember[]
   invitations      Invitation[]
   listPositions    ListPosition[]
+  favoriteLists    FavoriteList[]
+  listVisits       ListVisit[]
 
   @@map("users")
 }
@@ -261,6 +263,8 @@ model List {
   entries   ListEntry[]
   purchases PurchaseRecord[]
   positions ListPosition[]
+  favorites FavoriteList[]
+  visits    ListVisit[]
 
   @@index([ownerUserId])
   @@index([householdId])
@@ -329,4 +333,34 @@ model ListPosition {
   @@id([userId, listId])
   @@index([listId])
   @@map("list_positions")
+}
+
+// FR-D2: a user's starred lists, in their own order.
+model FavoriteList {
+  userId    String   @map("user_id") @db.Uuid
+  listId    String   @map("list_id") @db.Uuid
+  position  Int
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  list List @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@id([userId, listId])
+  @@index([listId])
+  @@map("favorite_lists")
+}
+
+// FR-D3: when the user last opened each list; one row per user and list.
+model ListVisit {
+  userId       String   @map("user_id") @db.Uuid
+  listId       String   @map("list_id") @db.Uuid
+  lastOpenedAt DateTime @default(now()) @map("last_opened_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  list List @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@id([userId, listId])
+  @@index([userId, lastOpenedAt(sort: Desc)])
+  @@index([listId])
+  @@map("list_visits")
 }

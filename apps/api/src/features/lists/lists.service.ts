@@ -67,6 +67,7 @@ export class ListsService {
       include: {
         ...LIST_DTO_INCLUDE,
         entries: { include: ENTRY_DTO_INCLUDE, orderBy: { id: 'asc' } },
+        favorites: { where: { userId: user.id }, select: { userId: true } },
       },
     });
     if (!list) throw new NotFoundException('List not found');
@@ -75,6 +76,7 @@ export class ListsService {
       ...toListDto(list),
       entries: list.entries.map(toEntryDto),
       permissions: [...permissions],
+      isFavorite: list.favorites.length > 0,
     };
   }
 

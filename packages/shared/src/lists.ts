@@ -26,6 +26,7 @@ export const listListSchema = z.array(listSchema);
 export const listDetailSchema = listSchema.extend({
   entries: z.array(entrySchema),
   permissions: z.array(permissionSchema),
+  isFavorite: z.boolean(),
 });
 export type ListDetailDto = z.infer<typeof listDetailSchema>;
 

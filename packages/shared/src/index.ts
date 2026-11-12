@@ -3,6 +3,7 @@ export * from './app.js';
 export * from './auth.js';
 export * from './bulk.js';
 export * from './categories.js';
+export * from './dashboard.js';
 export * from './entries.js';
 export * from './health.js';
 export * from './history.js';

@@ -8,6 +8,7 @@ import { ScopeModule } from './common/scope/scope.module.js';
 import { type Env, validateEnv } from './config/env.js';
 import { AuthModule } from './features/auth/auth.module.js';
 import { CategoriesModule } from './features/categories/categories.module.js';
+import { DashboardModule } from './features/dashboard/dashboard.module.js';
 import { EntriesModule } from './features/entries/entries.module.js';
 import { HealthModule } from './features/health/health.module.js';
 import { HistoryModule } from './features/history/history.module.js';
@@ -46,6 +47,7 @@ import { PrismaModule } from './infrastructure/prisma/prisma.module.js';
     HistoryModule,
     HouseholdsModule,
     InvitationsModule,
+    DashboardModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: SentryGlobalFilter }],
 })
